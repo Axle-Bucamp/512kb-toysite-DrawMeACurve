@@ -1,26 +1,709 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fourier Art Generator - 512kb</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:#000;
+  font-family:system-ui,sans-serif;
+  overflow-x:hidden;
+  color:#fff;
+  position:relative;
+  min-height:100vh
+}
+.parallax-bg{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  z-index:0;
+  pointer-events:none
+}
+.parallax-layer{
+  position:absolute;
+  width:100%;
+  height:100%;
+  background:radial-gradient(circle at var(--x,50%) var(--y,50%),rgba(0,255,255,.1) 0%,transparent 50%);
+  animation:float 20s ease-in-out infinite;
+  opacity:.3
+}
+.parallax-layer:nth-child(2){
+  background:radial-gradient(circle at var(--x,30%) var(--y,70%),rgba(0,255,136,.1) 0%,transparent 50%);
+  animation-delay:-5s;
+  animation-duration:25s
+}
+.parallax-layer:nth-child(3){
+  background:radial-gradient(circle at var(--x,70%) var(--y,30%),rgba(255,0,255,.1) 0%,transparent 50%);
+  animation-delay:-10s;
+  animation-duration:30s
+}
+@keyframes float{
+  0%,100%{transform:translate(0,0) scale(1)}
+  33%{transform:translate(20px,-30px) scale(1.1)}
+  66%{transform:translate(-20px,20px) scale(.9)}
+}
+.container{
+  position:relative;
+  z-index:1;
+  max-width:100%;
+  padding:20px
+}
+header{
+  text-align:center;
+  padding:40px 20px;
+  background:linear-gradient(135deg,rgba(0,245,255,.1),rgba(0,255,136,.1));
+  border-radius:20px;
+  margin-bottom:30px;
+  backdrop-filter:blur(10px);
+  border:1px solid rgba(0,255,255,.2);
+  box-shadow:0 10px 40px rgba(0,255,255,.2)
+}
+h1{
+  font-size:clamp(24px,5vw,48px);
+  background:linear-gradient(135deg,#00f5ff,#00ff88);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  margin-bottom:10px;
+  text-shadow:0 0 20px rgba(0,255,255,.5)
+}
+.subtitle{
+  font-size:clamp(12px,2vw,16px);
+  opacity:.7;
+  letter-spacing:2px
+}
+.main-content{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:20px;
+  margin-bottom:30px
+}
+@media(min-width:1024px){
+  .main-content{grid-template-columns:1fr 320px}
+}
+.canvas-wrapper{
+  background:rgba(10,10,20,.8);
+  border-radius:16px;
+  padding:20px;
+  border:1px solid rgba(0,255,255,.3);
+  backdrop-filter:blur(10px);
+  position:relative;
+  overflow:hidden
+}
+.canvas-wrapper::before{
+  content:'';
+  position:absolute;
+  top:-50%;
+  left:-50%;
+  width:200%;
+  height:200%;
+  background:radial-gradient(circle,rgba(0,255,255,.05) 0%,transparent 70%);
+  animation:rotate 30s linear infinite;
+  pointer-events:none
+}
+@keyframes rotate{
+  to{transform:rotate(360deg)}
+}
+#canvas{
+  display:block;
+  width:100%;
+  max-width:800px;
+  height:auto;
+  margin:0 auto;
+  border-radius:8px;
+  position:relative;
+  z-index:1
+}
+.controls{
+  background:rgba(20,20,30,.95);
+  padding:20px;
+  border-radius:16px;
+  backdrop-filter:blur(10px);
+  border:1px solid rgba(0,255,255,.2);
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+  max-height:calc(100vh - 100px);
+  overflow-y:auto
+}
+.control-group{
+  margin-bottom:20px
+}
+label{
+  display:block;
+  font-size:11px;
+  margin-bottom:8px;
+  opacity:.8;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  font-weight:600
+}
+input[type=range]{
+  width:100%;
+  height:4px;
+  background:rgba(255,255,255,.2);
+  border-radius:2px;
+  outline:none;
+  -webkit-appearance:none;
+  cursor:pointer
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:16px;
+  height:16px;
+  background:linear-gradient(135deg,#00f5ff,#00ff88);
+  border-radius:50%;
+  cursor:pointer;
+  box-shadow:0 0 10px rgba(0,255,255,.5);
+  transition:transform .2s
+}
+input[type=range]::-webkit-slider-thumb:hover{
+  transform:scale(1.2)
+}
+input[type=range]::-moz-range-thumb{
+  width:16px;
+  height:16px;
+  background:linear-gradient(135deg,#00f5ff,#00ff88);
+  border-radius:50%;
+  cursor:pointer;
+  border:none
+}
+input[type=number],select{
+  width:100%;
+  padding:10px;
+  background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.2);
+  color:#fff;
+  border-radius:6px;
+  font-size:13px;
+  transition:all .3s
+}
+input[type=number]:focus,select:focus{
+  outline:none;
+  border-color:#0ff;
+  box-shadow:0 0 10px rgba(0,255,255,.3)
+}
+.value{
+  display:inline-block;
+  margin-left:10px;
+  opacity:.6;
+  font-size:12px;
+  font-weight:normal
+}
+button{
+  width:100%;
+  padding:12px;
+  background:linear-gradient(135deg,#00f5ff,#00ff88);
+  border:none;
+  border-radius:8px;
+  color:#000;
+  font-weight:700;
+  cursor:pointer;
+  margin-top:10px;
+  transition:all .3s;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  font-size:12px;
+  box-shadow:0 4px 15px rgba(0,255,255,.3)
+}
+button:hover{
+  transform:translateY(-2px);
+  box-shadow:0 6px 20px rgba(0,255,255,.5)
+}
+button:active{
+  transform:translateY(0)
+}
+.section-title{
+  font-size:13px;
+  font-weight:700;
+  margin-bottom:15px;
+  padding-bottom:10px;
+  border-bottom:1px solid rgba(0,255,255,.3);
+  background:linear-gradient(135deg,#00f5ff,#00ff88);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text
+}
+.preset-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:8px;
+  margin-top:10px
+}
+.preset-btn{
+  padding:8px;
+  font-size:10px;
+  margin:0
+}
+footer{
+  text-align:center;
+  padding:30px;
+  opacity:.5;
+  font-size:12px;
+  letter-spacing:1px
+}
+::-webkit-scrollbar{width:8px}
+::-webkit-scrollbar-track{background:rgba(0,0,0,.3)}
+::-webkit-scrollbar-thumb{background:rgba(0,255,255,.3);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:rgba(0,255,255,.5)}
+</style>
+</head>
+<body>
+<div class="parallax-bg">
+  <div class="parallax-layer"></div>
+  <div class="parallax-layer"></div>
+  <div class="parallax-layer"></div>
+</div>
 
-  <head>
-    <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>Fourier Art Generator 512KB</title>    
-    <!-- THIS IS THE START OF A COMMENT BLOCK, BLOCK TO BE DELETED: Google Fonts here, example:
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    THIS IS THE END OF A COMMENT BLOCK, BLOCK TO BE DELETED -->
-  </head>
+<div class="container">
+  <header>
+    <h1>⚡ Fourier Art Generator</h1>
+    <p class="subtitle">Générateur d'images procédurales | &lt;512KB</p>
+  </header>
 
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-    <script
-      defer
-      src="%VITE_ANALYTICS_ENDPOINT%/umami"
-      data-website-id="%VITE_ANALYTICS_WEBSITE_ID%"></script>
-  </body>
+  <div class="main-content">
+    <div class="canvas-wrapper">
+      <canvas id="canvas" width="800" height="800"></canvas>
+    </div>
 
+    <div class="controls">
+      <div class="section-title">🎨 Algorithme Génératif</div>
+      
+      <div class="control-group">
+        <label>Mode de rendu</label>
+        <select id="algo">
+          <option value="gradient">Dégradé harmonique</option>
+          <option value="voronoi">Diagramme de Voronoï</option>
+          <option value="wave">Fonction d'onde</option>
+          <option value="plasma">Plasma fractal</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Teinte début <span class="value" id="hue1Val">180</span></label>
+        <input type="range" id="hue1" min="0" max="360" value="180">
+      </div>
+
+      <div class="control-group">
+        <label>Teinte fin <span class="value" id="hue2Val">280</span></label>
+        <input type="range" id="hue2" min="0" max="360" value="280">
+      </div>
+
+      <div class="control-group">
+        <label>Saturation <span class="value" id="satVal">80%</span></label>
+        <input type="range" id="sat" min="0" max="100" value="80">
+      </div>
+
+      <div class="control-group">
+        <label>Luminosité <span class="value" id="lightVal">60%</span></label>
+        <input type="range" id="light" min="20" max="90" value="60">
+      </div>
+
+      <div class="section-title">🌊 Transformée de Fourier</div>
+
+      <div class="control-group">
+        <label>Harmoniques <span class="value" id="harmVal">8</span></label>
+        <input type="range" id="harmonics" min="3" max="20" value="8">
+      </div>
+
+      <div class="control-group">
+        <label>Amplitude <span class="value" id="ampVal">100</span></label>
+        <input type="range" id="amplitude" min="20" max="200" value="100">
+      </div>
+
+      <div class="control-group">
+        <label>Lissage <span class="value" id="smoothVal">0.95</span></label>
+        <input type="range" id="smooth" min="80" max="100" value="95">
+      </div>
+
+      <div class="control-group">
+        <label>Vitesse <span class="value" id="speedVal">30</span></label>
+        <input type="range" id="speed" min="5" max="100" value="30">
+      </div>
+
+      <div class="section-title">🎲 Paramètres génératifs</div>
+
+      <div class="control-group">
+        <label>Graine aléatoire</label>
+        <input type="number" id="seed" value="42" min="1" max="9999">
+      </div>
+
+      <div class="control-group">
+        <label>Variation <span class="value" id="varVal">20%</span></label>
+        <input type="range" id="variation" min="0" max="100" value="20">
+      </div>
+
+      <div class="preset-grid">
+        <button class="preset-btn" onclick="loadPreset('cosmic')">Cosmique</button>
+        <button class="preset-btn" onclick="loadPreset('ocean')">Océan</button>
+        <button class="preset-btn" onclick="loadPreset('fire')">Feu</button>
+        <button class="preset-btn" onclick="loadPreset('forest')">Forêt</button>
+      </div>
+
+      <button onclick="reset()">🔄 Réinitialiser</button>
+      <button onclick="randomize()">🎲 Aléatoire</button>
+      <button onclick="saveImage()">💾 Télécharger PNG</button>
+    </div>
+  </div>
+
+  <footer>
+    Fourier Art Generator • Algorithmes génératifs légers • &lt;512KB
+  </footer>
+</div>
+
+<script>
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d',{alpha:false});
+const W=canvas.width,H=canvas.height;
+
+// Seeded random
+let seed=42;
+function rnd(){seed=(seed*9301+49297)%233280;return seed/233280}
+
+// Parameters
+let params={
+  algo:'gradient',
+  hue1:180,
+  hue2:280,
+  sat:80,
+  light:60,
+  harmonics:8,
+  amplitude:100,
+  smooth:0.95,
+  speed:30,
+  variation:20
+};
+
+// Fourier coefficients - smooth harmonics only (no noise)
+let fourierX=[],fourierY=[];
+
+function initFourier(){
+  fourierX=[];
+  fourierY=[];
+  const n=params.harmonics;
+  const amp=params.amplitude;
+  const smoothFactor=params.smooth;
+  
+  // Generate smooth harmonic decomposition
+  for(let i=0;i<=n;i++){
+    const freq=i;
+    // Smooth decay for higher frequencies
+    const decay=Math.pow(smoothFactor,i);
+    const baseAmp=amp/(i+1)*decay;
+    
+    // Use seeded random for reproducible but varied shapes
+    const phaseX=rnd()*Math.PI*2;
+    const phaseY=rnd()*Math.PI*2;
+    const ampVarX=1+(rnd()-0.5)*params.variation/100;
+    const ampVarY=1+(rnd()-0.5)*params.variation/100;
+    
+    fourierX.push({
+      freq:freq,
+      amp:baseAmp*ampVarX,
+      phase:phaseX
+    });
+    
+    fourierY.push({
+      freq:freq,
+      amp:baseAmp*ampVarY,
+      phase:phaseY
+    });
+  }
+}
+
+// Compute point from Fourier series
+function fourierPoint(t,coeffs){
+  let x=0,y=0;
+  for(let c of coeffs){
+    const angle=c.freq*t+c.phase;
+    x+=c.amp*Math.cos(angle);
+    y+=c.amp*Math.sin(angle);
+  }
+  return {x,y};
+}
+
+// Generative algorithms
+function colorAt(x,y,t){
+  const cx=W/2,cy=H/2;
+  const dx=x-cx,dy=y-cy;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+  const angle=Math.atan2(dy,dx);
+  
+  let h,s=params.sat,l=params.light;
+  
+  switch(params.algo){
+    case 'gradient':
+      // Smooth radial gradient
+      h=params.hue1+(params.hue2-params.hue1)*(dist/W);
+      break;
+      
+    case 'voronoi':
+      // Voronoi-like cells
+      const cellSize=80;
+      const cellX=Math.floor(x/cellSize);
+      const cellY=Math.floor(y/cellSize);
+      const cellHash=(cellX*73856093^cellY*19349663)%360;
+      h=(params.hue1+cellHash)%360;
+      break;
+      
+    case 'wave':
+      // Wave function
+      const waveFreq=0.02;
+      const wave=Math.sin(x*waveFreq+t)*Math.cos(y*waveFreq+t);
+      h=params.hue1+(params.hue2-params.hue1)*(wave*0.5+0.5);
+      break;
+      
+    case 'plasma':
+      // Plasma effect
+      const v1=Math.sin(x*0.01+t);
+      const v2=Math.sin(y*0.01+t);
+      const v3=Math.sin((x+y)*0.01+t);
+      const v4=Math.sin(Math.sqrt(dx*dx+dy*dy)*0.01+t);
+      const plasma=(v1+v2+v3+v4)/4;
+      h=params.hue1+(params.hue2-params.hue1)*(plasma*0.5+0.5);
+      break;
+  }
+  
+  return `hsl(${h%360},${s}%,${l}%)`;
+}
+
+// Animation
+let time=0;
+let path=[];
+
+function animate(){
+  // Background with trail effect
+  ctx.fillStyle='rgba(0,0,0,0.05)';
+  ctx.fillRect(0,0,W,H);
+  
+  time+=params.speed/1000;
+  
+  // Compute current point
+  const px=fourierPoint(time,fourierX);
+  const py=fourierPoint(-time,fourierY);
+  
+  const x=W/2+px.x;
+  const y=H/2+py.y;
+  
+  path.push({x,y,t:time});
+  if(path.length>1000)path.shift();
+  
+  // Draw generative background
+  if(path.length>50&&Math.floor(time*10)%5===0){
+    const gridSize=20;
+    for(let i=0;i<W;i+=gridSize){
+      for(let j=0;j<H;j+=gridSize){
+        // Check if near path
+        let nearPath=false;
+        for(let p of path){
+          const dx=i-p.x,dy=j-p.y;
+          if(dx*dx+dy*dy<10000){
+            nearPath=true;
+            break;
+          }
+        }
+        if(nearPath){
+          ctx.fillStyle=colorAt(i,j,time);
+          ctx.fillRect(i,j,gridSize,gridSize);
+        }
+      }
+    }
+  }
+  
+  // Draw epicycles for X
+  ctx.save();
+  ctx.translate(100,H/2);
+  let x1=0,y1=0;
+  for(let c of fourierX){
+    const prevX=x1,prevY=y1;
+    const angle=c.freq*time+c.phase;
+    x1+=c.amp*Math.cos(angle);
+    y1+=c.amp*Math.sin(angle);
+    
+    // Circle
+    ctx.strokeStyle=`hsla(${params.hue1},${params.sat}%,${params.light}%,0.2)`;
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.arc(prevX,prevY,c.amp,0,Math.PI*2);
+    ctx.stroke();
+    
+    // Radius
+    ctx.strokeStyle=`hsla(${params.hue1},${params.sat}%,${params.light+10}%,0.5)`;
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(prevX,prevY);
+    ctx.lineTo(x1,y1);
+    ctx.stroke();
+  }
+  ctx.restore();
+  
+  // Draw epicycles for Y
+  ctx.save();
+  ctx.translate(W/2,100);
+  let x2=0,y2=0;
+  for(let c of fourierY){
+    const prevX=x2,prevY=y2;
+    const angle=c.freq*(-time)+c.phase;
+    x2+=c.amp*Math.cos(angle);
+    y2+=c.amp*Math.sin(angle);
+    
+    ctx.strokeStyle=`hsla(${params.hue2},${params.sat}%,${params.light}%,0.2)`;
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.arc(prevX,prevY,c.amp,0,Math.PI*2);
+    ctx.stroke();
+    
+    ctx.strokeStyle=`hsla(${params.hue2},${params.sat}%,${params.light+10}%,0.5)`;
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(prevX,prevY);
+    ctx.lineTo(x2,y2);
+    ctx.stroke();
+  }
+  ctx.restore();
+  
+  // Draw path with gradient
+  ctx.lineWidth=3;
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
+  for(let i=1;i<path.length;i++){
+    const alpha=(i/path.length)*0.9;
+    const h=params.hue1+(params.hue2-params.hue1)*(i/path.length);
+    ctx.strokeStyle=`hsla(${h},${params.sat}%,${params.light}%,${alpha})`;
+    ctx.beginPath();
+    ctx.moveTo(path[i-1].x,path[i-1].y);
+    ctx.lineTo(path[i].x,path[i].y);
+    ctx.stroke();
+  }
+  
+  // Draw current point
+  if(path.length>0){
+    const last=path[path.length-1];
+    ctx.fillStyle=`hsl(${(params.hue1+params.hue2)/2},${params.sat}%,${params.light+20}%)`;
+    ctx.beginPath();
+    ctx.arc(last.x,last.y,6,0,Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle=`hsl(${(params.hue1+params.hue2)/2},100%,80%)`;
+    ctx.lineWidth=2;
+    ctx.stroke();
+  }
+  
+  requestAnimationFrame(animate);
+}
+
+// Controls
+function updateParam(id,key,suffix=''){
+  document.getElementById(id).oninput=e=>{
+    const val=parseFloat(e.target.value);
+    params[key]=key==='smooth'?val/100:val;
+    document.getElementById(id+'Val').textContent=val+suffix;
+    if(key==='harmonics'||key==='amplitude'||key==='smooth'||key==='variation'){
+      initFourier();
+    }
+  };
+}
+
+updateParam('algo','algo');
+document.getElementById('algo').onchange=e=>{params.algo=e.target.value};
+updateParam('hue1','hue1');
+updateParam('hue2','hue2');
+updateParam('sat','sat','%');
+updateParam('light','light','%');
+updateParam('harmonics','harmonics');
+updateParam('amplitude','amplitude');
+updateParam('smooth','smooth');
+updateParam('speed','speed');
+updateParam('variation','variation','%');
+
+document.getElementById('seed').oninput=e=>{
+  seed=parseInt(e.target.value)||42;
+  initFourier();
+};
+
+function reset(){
+  time=0;
+  path=[];
+  ctx.fillStyle='#000';
+  ctx.fillRect(0,0,W,H);
+}
+
+function randomize(){
+  params.hue1=Math.floor(Math.random()*360);
+  params.hue2=Math.floor(Math.random()*360);
+  params.sat=60+Math.floor(Math.random()*40);
+  params.harmonics=5+Math.floor(Math.random()*10);
+  seed=Math.floor(Math.random()*9999);
+  
+  document.getElementById('hue1').value=params.hue1;
+  document.getElementById('hue2').value=params.hue2;
+  document.getElementById('sat').value=params.sat;
+  document.getElementById('harmonics').value=params.harmonics;
+  document.getElementById('seed').value=seed;
+  
+  document.getElementById('hue1Val').textContent=params.hue1;
+  document.getElementById('hue2Val').textContent=params.hue2;
+  document.getElementById('satVal').textContent=params.sat+'%';
+  document.getElementById('harmVal').textContent=params.harmonics;
+  
+  initFourier();
+  reset();
+}
+
+function loadPreset(name){
+  const presets={
+    cosmic:{hue1:240,hue2:300,sat:90,light:60,algo:'plasma'},
+    ocean:{hue1:180,hue2:220,sat:80,light:55,algo:'wave'},
+    fire:{hue1:0,hue2:60,sat:100,light:60,algo:'gradient'},
+    forest:{hue1:90,hue2:150,sat:70,light:50,algo:'voronoi'}
+  };
+  const p=presets[name];
+  if(!p)return;
+  
+  params.hue1=p.hue1;
+  params.hue2=p.hue2;
+  params.sat=p.sat;
+  params.light=p.light;
+  params.algo=p.algo;
+  
+  document.getElementById('hue1').value=p.hue1;
+  document.getElementById('hue2').value=p.hue2;
+  document.getElementById('sat').value=p.sat;
+  document.getElementById('light').value=p.light;
+  document.getElementById('algo').value=p.algo;
+  
+  document.getElementById('hue1Val').textContent=p.hue1;
+  document.getElementById('hue2Val').textContent=p.hue2;
+  document.getElementById('satVal').textContent=p.sat+'%';
+  document.getElementById('lightVal').textContent=p.light+'%';
+  
+  reset();
+}
+
+function saveImage(){
+  const link=document.createElement('a');
+  link.download='fourier-art-'+Date.now()+'.png';
+  link.href=canvas.toDataURL();
+  link.click();
+}
+
+// Parallax effect
+document.addEventListener('mousemove',e=>{
+  const x=(e.clientX/window.innerWidth)*100;
+  const y=(e.clientY/window.innerHeight)*100;
+  document.querySelectorAll('.parallax-layer').forEach((layer,i)=>{
+    const speed=1+i*0.5;
+    layer.style.setProperty('--x',x*speed+'%');
+    layer.style.setProperty('--y',y*speed+'%');
+  });
+});
+
+// Initialize
+initFourier();
+ctx.fillStyle='#000';
+ctx.fillRect(0,0,W,H);
+animate();
+</script>
+</body>
 </html>

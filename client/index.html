@@ -1,489 +1,151 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fourier Art V3 - Fun & Generative</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{
-  background:#050510;
-  font-family:'Segoe UI',system-ui,sans-serif;
-  overflow-x:hidden;
-  color:#fff;
-  min-height:100vh
-}
-.container{
-  display:grid;
-  grid-template-columns:1fr 300px;
-  height:100vh;
-  overflow:hidden
-}
-@media(max-width:800px){.container{grid-template-columns:1fr;height:auto;overflow-y:auto}}
-
-.canvas-area{
-  position:relative;
-  background:radial-gradient(circle at center,#1a1a2e 0%,#000 100%);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  overflow:hidden
-}
-
-#canvas{
-  box-shadow:0 0 50px rgba(0,255,255,0.1);
-  border-radius:4px;
-  background:#000
-}
-
-.sidebar{
-  background:rgba(20,20,30,0.95);
-  border-left:1px solid rgba(255,255,255,0.1);
-  padding:20px;
-  overflow-y:auto;
-  backdrop-filter:blur(10px)
-}
-
-h1{
-  font-size:24px;
-  background:linear-gradient(to right,#00f2ff,#00ff88);
-  -webkit-background-clip:text;
-  -webkit-text-fill-color:transparent;
-  margin-bottom:20px;
-  font-weight:800;
-  letter-spacing:-1px
-}
-
-.control-group{margin-bottom:15px}
-label{
-  display:flex;
-  justify-content:space-between;
-  font-size:11px;
-  text-transform:uppercase;
-  letter-spacing:1px;
-  margin-bottom:5px;
-  color:#88a
-}
-input[type=range]{
-  width:100%;
-  height:4px;
-  background:#334;
-  border-radius:2px;
-  appearance:none;
-  outline:none
-}
-input[type=range]::-webkit-slider-thumb{
-  appearance:none;
-  width:14px;
-  height:14px;
-  background:#00f2ff;
-  border-radius:50%;
-  cursor:pointer;
-  transition:transform .1s
-}
-input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2)}
-
-select{
-  width:100%;
-  padding:8px;
-  background:#223;
-  border:1px solid #445;
-  color:#fff;
-  border-radius:4px;
-  font-size:12px
-}
-
-button{
-  width:100%;
-  padding:10px;
-  margin-top:10px;
-  background:linear-gradient(45deg,#00f2ff,#0066ff);
-  border:none;
-  border-radius:6px;
-  color:#fff;
-  font-weight:bold;
-  cursor:pointer;
-  transition:filter .2s
-}
-button:hover{filter:brightness(1.2)}
-button.secondary{background:#334;color:#ccc}
-
-.tabs{display:flex;gap:5px;margin-bottom:20px;background:#223;padding:4px;border-radius:6px}
-.tab{flex:1;text-align:center;padding:6px;font-size:11px;cursor:pointer;border-radius:4px;color:#889}
-.tab.active{background:#00f2ff;color:#000;font-weight:bold}
-
-.hidden{display:none}
-.file-drop{
-  border:2px dashed #445;
-  padding:20px;
-  text-align:center;
-  border-radius:8px;
-  cursor:pointer;
-  transition:border-color .2s
-}
-.file-drop:hover{border-color:#00f2ff}
-</style>
-</head>
-<body>
-
-<div class="container">
-  <div class="canvas-area">
-    <canvas id="canvas" width="800" height="800"></canvas>
-  </div>
-  
-  <div class="sidebar">
-    <h1>⚡ Fourier Fun</h1>
-    
-    <div class="tabs">
-      <div class="tab active" onclick="setMode('draw')">DESSIN</div>
-      <div class="tab" onclick="setMode('fill')">REMPLISSAGE</div>
-      <div class="tab" onclick="setMode('extract')">EXTRACTION</div>
-    </div>
-
-    <!-- DRAW MODE -->
-    <div id="draw-panel">
-      <div class="control-group">
-        <label>Harmoniques <span id="harmVal">50</span></label>
-        <input type="range" id="harmonics" min="5" max="300" value="50">
-      </div>
-      <div class="control-group">
-        <label>Vitesse <span id="speedVal">1.0</span></label>
-        <input type="range" id="speed" min="1" max="50" value="10">
-      </div>
-      <div class="control-group">
-        <label>Zoom <span id="zoomVal">1.0</span></label>
-        <input type="range" id="zoom" min="10" max="200" value="80">
-      </div>
-      <button onclick="togglePlay()">⏯️ Pause / Lecture</button>
-      <button class="secondary" onclick="resetPath()">🗑️ Effacer tout</button>
-    </div>
-
-    <!-- FILL MODE -->
-    <div id="fill-panel" class="hidden">
-      <div class="control-group">
-        <label>Algorithme</label>
-        <select id="fillAlgo">
-          <option value="gradient">Dégradé Radial</option>
-          <option value="knn">K-Nearest Neighbors</option>
-          <option value="wfc">Wave Function</option>
-          <option value="plasma">Plasma</option>
-        </select>
-      </div>
-      <div class="control-group">
-        <label>Teinte Début <span id="hue1Val">180</span></label>
-        <input type="range" id="hue1" min="0" max="360" value="180">
-      </div>
-      <div class="control-group">
-        <label>Teinte Fin <span id="hue2Val">280</span></label>
-        <input type="range" id="hue2" min="0" max="360" value="280">
-      </div>
-      <div class="control-group">
-        <label>Densité <span id="densVal">20</span></label>
-        <input type="range" id="density" min="5" max="50" value="20">
-      </div>
-    </div>
-
-    <!-- EXTRACT MODE -->
-    <div id="extract-panel" class="hidden">
-      <div class="file-drop" onclick="document.getElementById('file').click()">
-        📸 Glisser une image ou cliquer
-        <input type="file" id="file" accept="image/*" hidden>
-      </div>
-      <div class="control-group" style="margin-top:15px">
-        <label>Seuil <span id="threshVal">128</span></label>
-        <input type="range" id="threshold" min="0" max="255" value="128">
-      </div>
-      <div class="control-group">
-        <label>Simplification <span id="simpVal">2.0</span></label>
-        <input type="range" id="simplify" min="1" max="10" value="20">
-      </div>
-      <button onclick="processImage()">⚡ Extraire Lignes</button>
-    </div>
-    
-    <div style="margin-top:30px;font-size:10px;color:#556;text-align:center">
-      Optimisé < 512KB • Fourier Transform • Generative Art
-    </div>
-  </div>
-</div>
-
-<script>
-const canvas=document.getElementById('canvas');
-const ctx=canvas.getContext('2d',{alpha:false});
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fourier Art V4</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#050510;font-family:system-ui,sans-serif;color:#fff;min-height:100vh;overflow:hidden}.C{display:grid;grid-template-columns:1fr 300px;height:100vh}@media(max-width:800px){.C{grid-template-columns:1fr;height:auto;overflow-y:auto}}.A{position:relative;background:radial-gradient(circle at center,#1a1a2e 0,#000 100%);display:flex;align-items:center;justify-content:center}canvas{box-shadow:0 0 50px rgba(0,255,255,.1);border-radius:4px;background:#000}.S{background:rgba(20,20,30,.95);border-left:1px solid rgba(255,255,255,.1);padding:20px;overflow-y:auto;backdrop-filter:blur(10px)}h1{font-size:24px;background:linear-gradient(to right,#0ff,#0f8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:20px;font-weight:800}.G{margin-bottom:15px}label{display:flex;justify-content:space-between;font-size:11px;text-transform:uppercase;margin-bottom:5px;color:#88a}input[type=range]{width:100%;height:4px;background:#334;border-radius:2px;appearance:none;outline:none}input[type=range]::-webkit-slider-thumb{appearance:none;width:14px;height:14px;background:#0ff;border-radius:50%;cursor:pointer}select{width:100%;padding:8px;background:#223;border:1px solid #445;color:#fff;border-radius:4px}button{width:100%;padding:10px;margin-top:10px;background:linear-gradient(45deg,#0ff,#06f);border:none;border-radius:6px;color:#fff;font-weight:bold;cursor:pointer}button:hover{filter:brightness(1.2)}.sec{background:#334;color:#ccc}.tabs{display:flex;gap:5px;margin-bottom:20px;background:#223;padding:4px;border-radius:6px}.tab{flex:1;text-align:center;padding:6px;font-size:11px;cursor:pointer;border-radius:4px;color:#889}.tab.act{background:#0ff;color:#000;font-weight:bold}.hid{display:none}.drop{border:2px dashed #445;padding:20px;text-align:center;border-radius:8px;cursor:pointer}.drop:hover{border-color:#0ff}</style></head><body><div class="C"><div class="A"><canvas id="c" width="800" height="800"></canvas></div><div class="S"><h1>⚡ Fourier V4</h1><div class="tabs"><div class="tab act" onclick="M('draw')">DESSIN</div><div class="tab" onclick="M('fill')">REMPLIR</div><div class="tab" onclick="M('ext')">EXTRAIT</div></div><div id="draw-p"><div class="G"><label>Harmoniques <span id="hV">50</span></label><input type="range" id="h" min="5" max="300" value="50"></div><div class="G"><label>Vitesse <span id="sV">1.0</span></label><input type="range" id="s" min="1" max="50" value="10"></div><div class="G"><label>Zoom <span id="zV">1.0</span></label><input type="range" id="z" min="10" max="200" value="80"></div><button onclick="P()">⏯️ Pause</button><button class="sec" onclick="R()">🗑️ Reset</button><button onclick="SVG()">⬇️ SVG</button><button onclick="Audio()">🎵 Audio</button></div><div id="fill-p" class="hid"><div class="G"><label>Algo</label><select id="fa"><option value="grad">Dégradé</option><option value="knn">KNN</option><option value="wfc">WFC</option><option value="plas">Plasma</option></select></div><div class="G"><label>Teinte 1 <span id="h1V">180</span></label><input type="range" id="h1" min="0" max="360" value="180"></div><div class="G"><label>Teinte 2 <span id="h2V">280</span></label><input type="range" id="h2" min="0" max="360" value="280"></div><div class="G"><label>Densité <span id="dV">20</span></label><input type="range" id="d" min="5" max="50" value="20"></div></div><div id="ext-p" class="hid"><div class="drop" onclick="document.getElementById('f').click()">📸 Image<input type="file" id="f" accept="image/*" hidden></div><div class="G" style="margin-top:15px"><label>Seuil <span id="tV">128</span></label><input type="range" id="t" min="0" max="255" value="128"></div><div class="G"><label>Simplification <span id="siV">2.0</span></label><input type="range" id="si" min="1" max="10" value="20"></div><button onclick="Proc()">⚡ Extraire</button></div><div style="margin-top:30px;font-size:10px;color:#556;text-align:center">Optimisé < 16KB</div></div></div><script>
+const $=id=>document.getElementById(id);
+const cv=$('c'),ctx=cv.getContext('2d',{alpha:!1});
 const W=800,H=800;
-canvas.width=W;canvas.height=H;
+let md='draw',pts=[],fX=[],fY=[],pth=[],tm=0,play=1,imgD=null,aud=null,anl=null,dat=null;
+const p={h:50,s:1,z:.8,fa:'grad',h1:180,h2:280,d:20,t:128,si:2};
 
-// State
-let mode='draw';
-let points=[];
-let fourierX=[],fourierY=[];
-let path=[];
-let time=0;
-let isPlaying=true;
-let imgData=null;
-
-const params={
-  harmonics:50,
-  speed:1.0,
-  zoom:0.8,
-  fillAlgo:'gradient',
-  hue1:180,
-  hue2:280,
-  density:20,
-  threshold:128,
-  simplify:2.0
-};
-
-// Init default shape (Heart)
 for(let i=0;i<100;i++){
-  const a=i/100*Math.PI*2;
-  const r=10*(16*Math.pow(Math.sin(a),3));
-  const x=r;
-  const y=-10*(13*Math.cos(a)-5*Math.cos(2*a)-2*Math.cos(3*a)-Math.cos(4*a));
-  points.push({x,y});
+  const a=i/100*Math.PI*2,r=10*(16*Math.pow(Math.sin(a),3));
+  pts.push({x:r,y:-10*(13*Math.cos(a)-5*Math.cos(2*a)-2*Math.cos(3*a)-Math.cos(4*a))});
 }
-computeFourier();
+CF();
 
-// UI
-function setMode(m){
-  mode=m;
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  event.target.classList.add('active');
-  ['draw','fill','extract'].forEach(p=>{
-    document.getElementById(p+'-panel').classList.toggle('hidden',p!==m);
-  });
+function M(m){
+  md=m;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('act'));
+  event.target.classList.add('act');
+  ['draw','fill','ext'].forEach(x=>$(x+'-p').classList.toggle('hid',x!==m));
 }
 
-function bind(id,key,scale=1){
-  document.getElementById(id).oninput=e=>{
-    params[key]=parseFloat(e.target.value)/scale;
-    if(document.getElementById(id+'Val'))
-      document.getElementById(id+'Val').textContent=params[key];
-    if(key==='harmonics') computeFourier();
-    if(mode==='extract'&&imgData) processImage();
+function B(id,k,sc=1){
+  $(id).oninput=e=>{
+    p[k]=parseFloat(e.target.value)/sc;
+    if($(id+'V'))$(id+'V').textContent=p[k];
+    if(k==='h')CF();
+    if(md==='ext'&&imgD)Proc();
   };
 }
+B('h','h');B('s','s',10);B('z','z',100);B('h1','h1');B('h2','h2');B('d','d');B('t','t');B('si','si',10);
+$('fa').onchange=e=>p.fa=e.target.value;
 
-bind('harmonics','harmonics');
-bind('speed','speed',10);
-bind('zoom','zoom',100);
-bind('hue1','hue1');
-bind('hue2','hue2');
-bind('density','density');
-bind('threshold','threshold');
-bind('simplify','simplify',10);
-
-document.getElementById('fillAlgo').onchange=e=>params.fillAlgo=e.target.value;
-
-// Fourier
-function dft(vals){
-  const N=vals.length;
-  const coeffs=[];
-  for(let k=0;k<params.harmonics;k++){
+function DFT(v){
+  const N=v.length,c=[];
+  for(let k=0;k<p.h;k++){
     let re=0,im=0;
     for(let n=0;n<N;n++){
       const phi=(2*Math.PI*k*n)/N;
-      re+=vals[n]*Math.cos(phi);
-      im-=vals[n]*Math.sin(phi);
+      re+=v[n]*Math.cos(phi);
+      im-=v[n]*Math.sin(phi);
     }
-    re/=N;
-    im/=N;
-    coeffs.push({re,im,freq:k,amp:Math.sqrt(re*re+im*im),phase:Math.atan2(im,re)});
+    c.push({re:re/N,im:im/N,fr:k,amp:Math.sqrt(re*re+im*im)/N,ph:Math.atan2(im/N,re/N)});
   }
-  return coeffs;
+  return c;
 }
 
-function computeFourier(){
-  const x=points.map(p=>p.x);
-  const y=points.map(p=>p.y);
-  fourierX=dft(x);
-  fourierY=dft(y);
-  fourierX.sort((a,b)=>b.amp-a.amp);
-  fourierY.sort((a,b)=>b.amp-a.amp);
-  path=[];
-  time=0;
+function CF(){
+  fX=DFT(pts.map(p=>p.x)).sort((a,b)=>b.amp-a.amp);
+  fY=DFT(pts.map(p=>p.y)).sort((a,b)=>b.amp-a.amp);
+  pth=[];tm=0;
 }
 
-// Drawing
-function drawEpicycles(x,y,rotation,fourier){
-  for(let i=0;i<fourier.length;i++){
-    const prevX=x,prevY=y;
-    const freq=fourier[i].freq;
-    const radius=fourier[i].amp*params.zoom;
-    const phase=fourier[i].phase;
-    const angle=freq*time+phase+rotation;
-    x+=radius*Math.cos(angle);
-    y+=radius*Math.sin(angle);
-    
-    if(mode==='draw'){
+function DE(x,y,r,f){
+  for(let i=0;i<f.length;i++){
+    const px=x,py=y,fr=f[i].fr,rad=f[i].amp*p.z*(aud?1+dat[i%32]/128:1),ph=f[i].ph,a=fr*tm+ph+r;
+    x+=rad*Math.cos(a);y+=rad*Math.sin(a);
+    if(md==='draw'){
       ctx.strokeStyle='rgba(255,255,255,0.1)';
-      ctx.beginPath();
-      ctx.arc(prevX,prevY,radius,0,Math.PI*2);
-      ctx.stroke();
+      ctx.beginPath();ctx.arc(px,py,rad,0,Math.PI*2);ctx.stroke();
     }
   }
   return {x,y};
 }
 
-function getColor(x,y,t){
-  const dx=x-W/2,dy=y-H/2;
-  const d=Math.sqrt(dx*dx+dy*dy);
-  const a=Math.atan2(dy,dx);
-  
-  switch(params.fillAlgo){
-    case 'gradient':
-      return `hsl(${params.hue1+(params.hue2-params.hue1)*(d/400)},80%,50%)`;
-    case 'knn':
-      const cell=Math.floor(x/params.density)*params.density;
-      return `hsl(${(params.hue1+cell)%360},70%,50%)`;
-    case 'wfc':
-      const wave=Math.sin(x*0.02+t)*Math.cos(y*0.02+t);
-      return `hsl(${params.hue1+wave*100},80%,50%)`;
-    case 'plasma':
-      const v=Math.sin(x*0.01+t)+Math.sin(y*0.01+t)+Math.sin((x+y)*0.01+t);
-      return `hsl(${params.hue1+v*60},80%,50%)`;
+function GC(x,y,t){
+  const dx=x-W/2,dy=y-H/2,d=Math.sqrt(dx*dx+dy*dy);
+  switch(p.fa){
+    case 'grad':return `hsl(${p.h1+(p.h2-p.h1)*(d/400)},80%,50%)`;
+    case 'knn':return `hsl(${(p.h1+Math.floor(x/p.d)*p.d)%360},70%,50%)`;
+    case 'wfc':return `hsl(${p.h1+Math.sin(x*.02+t)*Math.cos(y*.02+t)*100},80%,50%)`;
+    case 'plas':return `hsl(${p.h1+(Math.sin(x*.01+t)+Math.sin(y*.01+t))*60},80%,50%)`;
   }
 }
 
-function draw(){
-  // Background
-  if(mode==='fill'){
-    // Generative background
-    const s=params.density;
-    for(let x=0;x<W;x+=s){
-      for(let y=0;y<H;y+=s){
-        ctx.fillStyle=getColor(x,y,time);
-        ctx.fillRect(x,y,s,s);
-      }
-    }
-    // Darken center for shape
-    ctx.fillStyle='rgba(0,0,0,0.8)';
-    ctx.beginPath();
-    if(path.length>0){
-      ctx.moveTo(path[0].x,path[0].y);
-      for(let p of path) ctx.lineTo(p.x,p.y);
-    }
+function Dr(){
+  if(aud){anl.getByteFrequencyData(dat);}
+  if(md==='fill'){
+    const s=p.d;
+    for(let x=0;x<W;x+=s)for(let y=0;y<H;y+=s){ctx.fillStyle=GC(x,y,tm);ctx.fillRect(x,y,s,s);}
+    ctx.fillStyle='rgba(0,0,0,0.8)';ctx.beginPath();
+    if(pth.length>0){ctx.moveTo(pth[0].x,pth[0].y);for(let pt of pth)ctx.lineTo(pt.x,pt.y);}
     ctx.fill();
-  }else{
-    ctx.fillStyle='#000';
-    ctx.fillRect(0,0,W,H);
-  }
+  }else{ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);}
 
-  // Fourier
-  const vx=drawEpicycles(W/2,100,0,fourierX);
-  const vy=drawEpicycles(100,H/2,Math.PI/2,fourierY);
-  const v={x:vx.x,y:vy.y};
-  
-  path.unshift(v);
-  if(path.length>1000) path.pop();
-  
-  // Draw Path
-  ctx.strokeStyle=mode==='fill'?'#fff':'#0ff';
-  ctx.lineWidth=3;
-  ctx.beginPath();
-  for(let i=0;i<path.length;i++){
-    ctx.lineTo(path[i].x,path[i].y);
-  }
+  const vx=DE(W/2,100,0,fX),vy=DE(100,H/2,Math.PI/2,fY),v={x:vx.x,y:vy.y};
+  pth.unshift(v);if(pth.length>1000)pth.pop();
+
+  ctx.strokeStyle=md==='fill'?'#fff':'#0ff';ctx.lineWidth=3;ctx.beginPath();
+  for(let i=0;i<pth.length;i++)ctx.lineTo(pth[i].x,pth[i].y);
   ctx.stroke();
-  
-  // Connectors
-  if(mode==='draw'){
-    ctx.strokeStyle='rgba(255,255,255,0.2)';
-    ctx.beginPath();
-    ctx.moveTo(vx.x,vx.y);
-    ctx.lineTo(v.x,v.y);
-    ctx.lineTo(vy.x,vy.y);
-    ctx.stroke();
+
+  if(md==='draw'){
+    ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.beginPath();
+    ctx.moveTo(vx.x,vx.y);ctx.lineTo(v.x,v.y);ctx.lineTo(vy.x,vy.y);ctx.stroke();
   }
 }
 
-function animate(){
-  if(isPlaying){
-    const dt=(2*Math.PI)/fourierX.length;
-    time+=dt*params.speed;
-    draw();
-  }
-  requestAnimationFrame(animate);
-}
+function A(){if(play){tm+=(2*Math.PI)/fX.length*p.s;Dr();}requestAnimationFrame(A);}
 
-// Image Extraction
-document.getElementById('file').onchange=e=>{
-  const file=e.target.files[0];
-  if(!file)return;
-  const reader=new FileReader();
-  reader.onload=evt=>{
-    const img=new Image();
-    img.onload=()=>{
-      const c=document.createElement('canvas');
-      const scale=Math.min(800/img.width,800/img.height);
-      c.width=img.width*scale;
-      c.height=img.height*scale;
-      const cx=c.getContext('2d');
-      cx.drawImage(img,0,0,c.width,c.height);
-      imgData=cx.getImageData(0,0,c.width,c.height);
-      processImage();
-    };
-    img.src=evt.target.result;
-  };
-  reader.readAsDataURL(file);
+$('f').onchange=e=>{
+  const f=e.target.files[0],r=new FileReader();
+  r.onload=ev=>{
+    const i=new Image();
+    i.onload=()=>{
+      const c=document.createElement('canvas'),s=Math.min(800/i.width,800/i.height);
+      c.width=i.width*s;c.height=i.height*s;
+      const x=c.getContext('2d');x.drawImage(i,0,0,c.width,c.height);
+      imgD=x.getImageData(0,0,c.width,c.height);Proc();
+    };i.src=ev.target.result;
+  };r.readAsDataURL(f);
 };
 
-function processImage(){
-  if(!imgData)return;
-  const d=imgData.data;
-  const w=imgData.width;
-  const h=imgData.height;
-  const edges=[];
-  
-  // Improved edge detection (Gradient based)
-  for(let y=1;y<h-1;y+=2){
-    for(let x=1;x<w-1;x+=2){
-      const i=(y*w+x)*4;
-      const gx = (d[i+4]+d[i+5]+d[i+6]) - (d[i-4]+d[i-3]+d[i-2]);
-      const gy = (d[i+w*4]+d[i+w*4+1]+d[i+w*4+2]) - (d[i-w*4]+d[i-w*4+1]+d[i-w*4+2]);
-      const mag = Math.sqrt(gx*gx + gy*gy);
-      
-      if(mag > params.threshold){ 
-        edges.push({x:x-w/2,y:y-h/2});
-      }
-    }
+function Proc(){
+  if(!imgD)return;
+  const d=imgD.data,w=imgD.width,h=imgD.height,e=[];
+  for(let y=1;y<h-1;y+=2)for(let x=1;x<w-1;x+=2){
+    const i=(y*w+x)*4,gx=(d[i+4]+d[i+5]+d[i+6])-(d[i-4]+d[i-3]+d[i-2]),gy=(d[i+w*4]+d[i+w*4+1]+d[i+w*4+2])-(d[i-w*4]+d[i-w*4+1]+d[i-w*4+2]);
+    if(Math.sqrt(gx*gx+gy*gy)>p.t)e.push({x:x-w/2,y:y-h/2});
   }
-  
-  // Sort to single path (Nearest Neighbor)
-  if(edges.length>0){
-    points=[edges[0]];
-    edges.splice(0,1);
-    let current=points[0];
-    
-    while(edges.length>0){
-      let nearest=0;
-      let minDist=Infinity;
-      // Look only at 500 random samples for speed if too many
-      const step=Math.max(1,Math.floor(edges.length/500));
-      
-      for(let i=0;i<edges.length;i+=step){
-        const dist=(edges[i].x-current.x)**2+(edges[i].y-current.y)**2;
-        if(dist<minDist){
-          minDist=dist;
-          nearest=i;
-        }
+  if(e.length>0){
+    pts=[e[0]];e.splice(0,1);let c=pts[0];
+    while(e.length>0){
+      let n=0,m=Infinity,st=Math.max(1,Math.floor(e.length/500));
+      for(let i=0;i<e.length;i+=st){
+        const ds=(e[i].x-c.x)**2+(e[i].y-c.y)**2;
+        if(ds<m){m=ds;n=i;}
       }
-      current=edges[nearest];
-      points.push(current);
-      edges.splice(nearest,1);
+      c=e[n];pts.push(c);e.splice(n,1);
     }
-    
-    // Simplify
-    const skip=Math.floor(params.simplify);
-    points=points.filter((_,i)=>i%skip===0);
-    
-    computeFourier();
+    const sk=Math.floor(p.si);pts=pts.filter((_,i)=>i%sk===0);CF();
   }
 }
 
-function togglePlay(){isPlaying=!isPlaying}
-function resetPath(){points=[];path=[];}
-
-animate();
-</script>
-</body>
-</html>
+function P(){play=!play}
+function R(){pts=[];pth=[];}
+function SVG(){
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" style="background:#000"><path d="M ${pth.map(p=>`${p.x},${p.y}`).join(' L ')}" fill="none" stroke="#0ff" stroke-width="2"/></svg>`;
+  const b=new Blob([s],{type:'image/svg+xml'}),u=URL.createObjectURL(b),a=document.createElement('a');
+  a.href=u;a.download='fourier.svg';a.click();
+}
+async function Audio(){
+  if(!aud){
+    try{
+      const s=await navigator.mediaDevices.getUserMedia({audio:!0});
+      aud=new AudioContext();const src=aud.createMediaStreamSource(s);
+      anl=aud.createAnalyser();anl.fftSize=64;src.connect(anl);
+      dat=new Uint8Array(anl.frequencyBinCount);
+    }catch(e){alert('Microphone requis!')}
+  }
+}
+A();
+</script></body></html>

@@ -3,501 +3,282 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fourier Art Generator V2 - Splines & Analysis</title>
+<title>Fourier Art V3 - Fun & Generative</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{
-  background:#000;
-  font-family:system-ui,sans-serif;
+  background:#050510;
+  font-family:'Segoe UI',system-ui,sans-serif;
   overflow-x:hidden;
   color:#fff;
-  position:relative;
   min-height:100vh
 }
-.parallax-bg{
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  z-index:0;
-  pointer-events:none
-}
-.parallax-layer{
-  position:absolute;
-  width:100%;
-  height:100%;
-  background:radial-gradient(circle at var(--x,50%) var(--y,50%),rgba(0,255,255,.1) 0%,transparent 50%);
-  animation:float 20s ease-in-out infinite;
-  opacity:.3
-}
-.parallax-layer:nth-child(2){
-  background:radial-gradient(circle at var(--x,30%) var(--y,70%),rgba(0,255,136,.1) 0%,transparent 50%);
-  animation-delay:-5s;
-  animation-duration:25s
-}
-.parallax-layer:nth-child(3){
-  background:radial-gradient(circle at var(--x,70%) var(--y,30%),rgba(255,0,255,.1) 0%,transparent 50%);
-  animation-delay:-10s;
-  animation-duration:30s
-}
-@keyframes float{
-  0%,100%{transform:translate(0,0) scale(1)}
-  33%{transform:translate(20px,-30px) scale(1.1)}
-  66%{transform:translate(-20px,20px) scale(.9)}
-}
 .container{
+  display:grid;
+  grid-template-columns:1fr 300px;
+  height:100vh;
+  overflow:hidden
+}
+@media(max-width:800px){.container{grid-template-columns:1fr;height:auto;overflow-y:auto}}
+
+.canvas-area{
   position:relative;
-  z-index:1;
-  max-width:100%;
-  padding:20px
+  background:radial-gradient(circle at center,#1a1a2e 0%,#000 100%);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden
 }
-header{
-  text-align:center;
-  padding:40px 20px;
-  background:linear-gradient(135deg,rgba(0,245,255,.1),rgba(0,255,136,.1));
-  border-radius:20px;
-  margin-bottom:30px;
-  backdrop-filter:blur(10px);
-  border:1px solid rgba(0,255,255,.2);
-  box-shadow:0 10px 40px rgba(0,255,255,.2)
+
+#canvas{
+  box-shadow:0 0 50px rgba(0,255,255,0.1);
+  border-radius:4px;
+  background:#000
 }
+
+.sidebar{
+  background:rgba(20,20,30,0.95);
+  border-left:1px solid rgba(255,255,255,0.1);
+  padding:20px;
+  overflow-y:auto;
+  backdrop-filter:blur(10px)
+}
+
 h1{
-  font-size:clamp(24px,5vw,48px);
-  background:linear-gradient(135deg,#00f5ff,#00ff88);
+  font-size:24px;
+  background:linear-gradient(to right,#00f2ff,#00ff88);
   -webkit-background-clip:text;
   -webkit-text-fill-color:transparent;
-  background-clip:text;
-  margin-bottom:10px;
-  text-shadow:0 0 20px rgba(0,255,255,.5)
+  margin-bottom:20px;
+  font-weight:800;
+  letter-spacing:-1px
 }
-.subtitle{
-  font-size:clamp(12px,2vw,16px);
-  opacity:.7;
-  letter-spacing:2px
-}
-.main-content{
-  display:grid;
-  grid-template-columns:1fr;
-  gap:20px;
-  margin-bottom:30px
-}
-@media(min-width:1024px){
-  .main-content{grid-template-columns:1fr 320px}
-}
-.canvas-wrapper{
-  background:rgba(10,10,20,.8);
-  border-radius:16px;
-  padding:20px;
-  border:1px solid rgba(0,255,255,.3);
-  backdrop-filter:blur(10px);
-  position:relative;
-  overflow:hidden;
-  min-height:600px
-}
-#canvas{
-  display:block;
-  width:100%;
-  max-width:800px;
-  height:auto;
-  margin:0 auto;
-  border-radius:8px;
-  position:relative;
-  z-index:1;
-  cursor:crosshair
-}
-.controls{
-  background:rgba(20,20,30,.95);
-  padding:20px;
-  border-radius:16px;
-  backdrop-filter:blur(10px);
-  border:1px solid rgba(0,255,255,.2);
-  box-shadow:0 8px 32px rgba(0,0,0,.5);
-  max-height:calc(100vh - 100px);
-  overflow-y:auto
-}
-.control-group{
-  margin-bottom:20px
-}
+
+.control-group{margin-bottom:15px}
 label{
-  display:block;
+  display:flex;
+  justify-content:space-between;
   font-size:11px;
-  margin-bottom:8px;
-  opacity:.8;
   text-transform:uppercase;
   letter-spacing:1px;
-  font-weight:600
+  margin-bottom:5px;
+  color:#88a
 }
 input[type=range]{
   width:100%;
   height:4px;
-  background:rgba(255,255,255,.2);
+  background:#334;
   border-radius:2px;
-  outline:none;
-  -webkit-appearance:none;
-  cursor:pointer
+  appearance:none;
+  outline:none
 }
 input[type=range]::-webkit-slider-thumb{
-  -webkit-appearance:none;
-  width:16px;
-  height:16px;
-  background:linear-gradient(135deg,#00f5ff,#00ff88);
+  appearance:none;
+  width:14px;
+  height:14px;
+  background:#00f2ff;
   border-radius:50%;
   cursor:pointer;
-  box-shadow:0 0 10px rgba(0,255,255,.5);
-  transition:transform .2s
+  transition:transform .1s
 }
-input[type=range]::-webkit-slider-thumb:hover{
-  transform:scale(1.2)
-}
-input[type=file]{
-  display:none
-}
-.file-label{
-  display:block;
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2)}
+
+select{
   width:100%;
-  padding:12px;
-  background:rgba(255,255,255,.1);
-  border:1px dashed rgba(0,255,255,.5);
-  border-radius:8px;
-  text-align:center;
-  cursor:pointer;
-  transition:all .3s;
-  font-size:12px;
-  text-transform:uppercase;
-  letter-spacing:1px
+  padding:8px;
+  background:#223;
+  border:1px solid #445;
+  color:#fff;
+  border-radius:4px;
+  font-size:12px
 }
-.file-label:hover{
-  background:rgba(0,255,255,.1);
-  border-color:#0ff
-}
-.section-title{
-  font-size:13px;
-  font-weight:700;
-  margin-bottom:15px;
-  padding-bottom:10px;
-  border-bottom:1px solid rgba(0,255,255,.3);
-  background:linear-gradient(135deg,#00f5ff,#00ff88);
-  -webkit-background-clip:text;
-  -webkit-text-fill-color:transparent;
-  background-clip:text;
-  margin-top:20px
-}
-.section-title:first-child{margin-top:0}
+
 button{
   width:100%;
-  padding:12px;
-  background:linear-gradient(135deg,#00f5ff,#00ff88);
-  border:none;
-  border-radius:8px;
-  color:#000;
-  font-weight:700;
-  cursor:pointer;
-  margin-top:10px;
-  transition:all .3s;
-  text-transform:uppercase;
-  letter-spacing:1px;
-  font-size:12px;
-  box-shadow:0 4px 15px rgba(0,255,255,.3)
-}
-button:hover{
-  transform:translateY(-2px);
-  box-shadow:0 6px 20px rgba(0,255,255,.5)
-}
-.tabs{
-  display:flex;
-  gap:10px;
-  margin-bottom:20px
-}
-.tab{
-  flex:1;
   padding:10px;
-  background:rgba(255,255,255,.1);
+  margin-top:10px;
+  background:linear-gradient(45deg,#00f2ff,#0066ff);
   border:none;
-  color:#fff;
-  cursor:pointer;
   border-radius:6px;
-  font-size:11px;
-  text-transform:uppercase;
-  transition:all .3s
+  color:#fff;
+  font-weight:bold;
+  cursor:pointer;
+  transition:filter .2s
 }
-.tab.active{
-  background:#0ff;
-  color:#000;
-  font-weight:bold
-}
+button:hover{filter:brightness(1.2)}
+button.secondary{background:#334;color:#ccc}
+
+.tabs{display:flex;gap:5px;margin-bottom:20px;background:#223;padding:4px;border-radius:6px}
+.tab{flex:1;text-align:center;padding:6px;font-size:11px;cursor:pointer;border-radius:4px;color:#889}
+.tab.active{background:#00f2ff;color:#000;font-weight:bold}
+
 .hidden{display:none}
+.file-drop{
+  border:2px dashed #445;
+  padding:20px;
+  text-align:center;
+  border-radius:8px;
+  cursor:pointer;
+  transition:border-color .2s
+}
+.file-drop:hover{border-color:#00f2ff}
 </style>
 </head>
 <body>
-<div class="parallax-bg">
-  <div class="parallax-layer"></div>
-  <div class="parallax-layer"></div>
-  <div class="parallax-layer"></div>
-</div>
 
 <div class="container">
-  <header>
-    <h1>⚡ Fourier Art V2</h1>
-    <p class="subtitle">Analyse d'image • Splines de Bézier • Fourier</p>
-  </header>
-
-  <div class="main-content">
-    <div class="canvas-wrapper">
-      <canvas id="canvas" width="800" height="800"></canvas>
+  <div class="canvas-area">
+    <canvas id="canvas" width="800" height="800"></canvas>
+  </div>
+  
+  <div class="sidebar">
+    <h1>⚡ Fourier Fun</h1>
+    
+    <div class="tabs">
+      <div class="tab active" onclick="setMode('draw')">DESSIN</div>
+      <div class="tab" onclick="setMode('fill')">REMPLISSAGE</div>
+      <div class="tab" onclick="setMode('extract')">EXTRACTION</div>
     </div>
 
-    <div class="controls">
-      <div class="tabs">
-        <button class="tab active" onclick="setMode('draw')">Dessin</button>
-        <button class="tab" onclick="setMode('analyze')">Analyse</button>
-        <button class="tab" onclick="setMode('spline')">Splines</button>
+    <!-- DRAW MODE -->
+    <div id="draw-panel">
+      <div class="control-group">
+        <label>Harmoniques <span id="harmVal">50</span></label>
+        <input type="range" id="harmonics" min="5" max="300" value="50">
       </div>
+      <div class="control-group">
+        <label>Vitesse <span id="speedVal">1.0</span></label>
+        <input type="range" id="speed" min="1" max="50" value="10">
+      </div>
+      <div class="control-group">
+        <label>Zoom <span id="zoomVal">1.0</span></label>
+        <input type="range" id="zoom" min="10" max="200" value="80">
+      </div>
+      <button onclick="togglePlay()">⏯️ Pause / Lecture</button>
+      <button class="secondary" onclick="resetPath()">🗑️ Effacer tout</button>
+    </div>
 
-      <div id="analyze-controls" class="hidden">
-        <div class="section-title">📸 Analyse d'image</div>
-        <div class="control-group">
-          <input type="file" id="imgUpload" accept="image/*">
-          <label for="imgUpload" class="file-label">📁 Charger une image</label>
-        </div>
-        <div class="control-group">
-          <label>Seuil de détection <span class="value" id="threshVal">128</span></label>
-          <input type="range" id="threshold" min="0" max="255" value="128">
-        </div>
-        <div class="control-group">
-          <label>Points d'échantillonnage <span class="value" id="sampleVal">500</span></label>
-          <input type="range" id="samples" min="100" max="1000" value="500">
-        </div>
-        <button onclick="processImage()">⚡ Extraire Fourier</button>
+    <!-- FILL MODE -->
+    <div id="fill-panel" class="hidden">
+      <div class="control-group">
+        <label>Algorithme</label>
+        <select id="fillAlgo">
+          <option value="gradient">Dégradé Radial</option>
+          <option value="knn">K-Nearest Neighbors</option>
+          <option value="wfc">Wave Function</option>
+          <option value="plasma">Plasma</option>
+        </select>
       </div>
+      <div class="control-group">
+        <label>Teinte Début <span id="hue1Val">180</span></label>
+        <input type="range" id="hue1" min="0" max="360" value="180">
+      </div>
+      <div class="control-group">
+        <label>Teinte Fin <span id="hue2Val">280</span></label>
+        <input type="range" id="hue2" min="0" max="360" value="280">
+      </div>
+      <div class="control-group">
+        <label>Densité <span id="densVal">20</span></label>
+        <input type="range" id="density" min="5" max="50" value="20">
+      </div>
+    </div>
 
-      <div id="spline-controls" class="hidden">
-        <div class="section-title">✒️ Splines de Bézier</div>
-        <div class="control-group">
-          <label>Tension <span class="value" id="tensionVal">0.5</span></label>
-          <input type="range" id="tension" min="0" max="100" value="50">
-        </div>
-        <div class="control-group">
-          <label>Segments <span class="value" id="segVal">20</span></label>
-          <input type="range" id="segments" min="5" max="50" value="20">
-        </div>
-        <button onclick="smoothPath()">✨ Lisser le tracé</button>
-        <button onclick="resetPoints()">🗑️ Effacer points</button>
-        <p style="font-size:11px;opacity:0.7;margin-top:10px">
-          🖱️ Cliquez pour ajouter des points<br>
-          ✋ Glissez pour déplacer
-        </p>
+    <!-- EXTRACT MODE -->
+    <div id="extract-panel" class="hidden">
+      <div class="file-drop" onclick="document.getElementById('file').click()">
+        📸 Glisser une image ou cliquer
+        <input type="file" id="file" accept="image/*" hidden>
       </div>
-
-      <div id="draw-controls">
-        <div class="section-title">🎨 Rendu</div>
-        <div class="control-group">
-          <label>Harmoniques <span class="value" id="harmVal">50</span></label>
-          <input type="range" id="harmonics" min="5" max="200" value="50">
-        </div>
-        <div class="control-group">
-          <label>Vitesse <span class="value" id="speedVal">20</span></label>
-          <input type="range" id="speed" min="1" max="100" value="20">
-        </div>
-        <div class="control-group">
-          <label>Zoom <span class="value" id="zoomVal">1.0</span></label>
-          <input type="range" id="zoom" min="10" max="300" value="100">
-        </div>
-        <button onclick="togglePlay()">⏯️ Pause/Lecture</button>
+      <div class="control-group" style="margin-top:15px">
+        <label>Seuil <span id="threshVal">128</span></label>
+        <input type="range" id="threshold" min="0" max="255" value="128">
       </div>
+      <div class="control-group">
+        <label>Simplification <span id="simpVal">2.0</span></label>
+        <input type="range" id="simplify" min="1" max="10" value="20">
+      </div>
+      <button onclick="processImage()">⚡ Extraire Lignes</button>
+    </div>
+    
+    <div style="margin-top:30px;font-size:10px;color:#556;text-align:center">
+      Optimisé < 512KB • Fourier Transform • Generative Art
     </div>
   </div>
 </div>
 
 <script>
 const canvas=document.getElementById('canvas');
-const ctx=canvas.getContext('2d');
-const W=canvas.width,H=canvas.height;
-
-let mode='draw'; // draw, analyze, spline
-let points=[]; // Control points for spline
-let fourierX=[],fourierY=[]; // Fourier coefficients
-let path=[]; // Drawing path
-let time=0;
-let isPlaying=true;
-let dragPoint=null;
-let imgData=null;
+const ctx=canvas.getContext('2d',{alpha:false});
+const W=800,H=800;
+canvas.width=W;canvas.height=H;
 
 // State
-const state={
-  threshold:128,
-  samples:500,
-  tension:0.5,
-  segments:20,
+let mode='draw';
+let points=[];
+let fourierX=[],fourierY=[];
+let path=[];
+let time=0;
+let isPlaying=true;
+let imgData=null;
+
+const params={
   harmonics:50,
-  speed:20,
-  zoom:1.0
+  speed:1.0,
+  zoom:0.8,
+  fillAlgo:'gradient',
+  hue1:180,
+  hue2:280,
+  density:20,
+  threshold:128,
+  simplify:2.0
 };
 
-// UI Handlers
+// Init default shape (Heart)
+for(let i=0;i<100;i++){
+  const a=i/100*Math.PI*2;
+  const r=10*(16*Math.pow(Math.sin(a),3));
+  const x=r;
+  const y=-10*(13*Math.cos(a)-5*Math.cos(2*a)-2*Math.cos(3*a)-Math.cos(4*a));
+  points.push({x,y});
+}
+computeFourier();
+
+// UI
 function setMode(m){
   mode=m;
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   event.target.classList.add('active');
-  
-  document.getElementById('analyze-controls').classList.add('hidden');
-  document.getElementById('spline-controls').classList.add('hidden');
-  document.getElementById('draw-controls').classList.remove('hidden');
-  
-  if(m==='analyze'){
-    document.getElementById('analyze-controls').classList.remove('hidden');
-    document.getElementById('draw-controls').classList.add('hidden');
-  }else if(m==='spline'){
-    document.getElementById('spline-controls').classList.remove('hidden');
-  }
-  
-  draw();
+  ['draw','fill','extract'].forEach(p=>{
+    document.getElementById(p+'-panel').classList.toggle('hidden',p!==m);
+  });
 }
 
-function updateVal(id,key,scale=1){
+function bind(id,key,scale=1){
   document.getElementById(id).oninput=e=>{
-    state[key]=parseFloat(e.target.value)/scale;
-    document.getElementById(id+'Val').textContent=state[key];
-    if(mode==='analyze'&&imgData) processImage();
-    if(mode==='spline') draw();
+    params[key]=parseFloat(e.target.value)/scale;
+    if(document.getElementById(id+'Val'))
+      document.getElementById(id+'Val').textContent=params[key];
+    if(key==='harmonics') computeFourier();
+    if(mode==='extract'&&imgData) processImage();
   };
 }
 
-updateVal('threshold','threshold');
-updateVal('samples','samples');
-updateVal('tension','tension',100);
-updateVal('segments','segments');
-updateVal('harmonics','harmonics');
-updateVal('speed','speed');
-updateVal('zoom','zoom',100);
+bind('harmonics','harmonics');
+bind('speed','speed',10);
+bind('zoom','zoom',100);
+bind('hue1','hue1');
+bind('hue2','hue2');
+bind('density','density');
+bind('threshold','threshold');
+bind('simplify','simplify',10);
 
-// Image Analysis
-document.getElementById('imgUpload').onchange=e=>{
-  const file=e.target.files[0];
-  if(!file)return;
-  const reader=new FileReader();
-  reader.onload=evt=>{
-    const img=new Image();
-    img.onload=()=>{
-      const tempC=document.createElement('canvas');
-      tempC.width=W;
-      tempC.height=H;
-      const tCtx=tempC.getContext('2d');
-      // Fit image to canvas
-      const scale=Math.min(W/img.width,H/img.height)*0.8;
-      const w=img.width*scale;
-      const h=img.height*scale;
-      tCtx.drawImage(img,(W-w)/2,(H-h)/2,w,h);
-      imgData=tCtx.getImageData(0,0,W,H);
-      processImage();
-    };
-    img.src=evt.target.result;
-  };
-  reader.readAsDataURL(file);
-};
+document.getElementById('fillAlgo').onchange=e=>params.fillAlgo=e.target.value;
 
-function processImage(){
-  if(!imgData)return;
-  const data=imgData.data;
-  const edges=[];
-  
-  // Edge detection
-  for(let y=1;y<H-1;y+=2){
-    for(let x=1;x<W-1;x+=2){
-      const i=(y*W+x)*4;
-      const b=(data[i]+data[i+1]+data[i+2])/3;
-      if(b>state.threshold){
-        // Simple neighbor check
-        if((data[i-4]+data[i+4]+data[i-W*4]+data[i+W*4])/12 < state.threshold){
-          edges.push({x:x-W/2,y:y-H/2});
-        }
-      }
-    }
-  }
-  
-  // Sort points to form a path (nearest neighbor)
-  if(edges.length>0){
-    points=[edges[0]];
-    edges.splice(0,1);
-    while(edges.length>0){
-      const last=points[points.length-1];
-      let nearest=0,minDist=Infinity;
-      // Optimization: check only subset if too large
-      const limit=Math.min(edges.length,1000);
-      for(let i=0;i<limit;i++){
-        const d=(edges[i].x-last.x)**2+(edges[i].y-last.y)**2;
-        if(d<minDist){minDist=d;nearest=i;}
-      }
-      points.push(edges[nearest]);
-      edges.splice(nearest,1);
-    }
-    
-    // Downsample
-    const step=Math.max(1,Math.floor(points.length/state.samples));
-    points=points.filter((_,i)=>i%step===0);
-    
-    computeFourier();
-  }
-}
-
-// Spline Logic
-function getSplinePoints(){
-  if(points.length<2)return points;
-  const res=[];
-  const tension=state.tension; // 0 to 1
-  
-  // Catmull-Rom to Cubic Bezier conversion for smoother curves
-  for(let i=0;i<points.length;i++){
-    const p0=points[i===0?points.length-1:i-1];
-    const p1=points[i];
-    const p2=points[(i+1)%points.length];
-    const p3=points[(i+2)%points.length];
-    
-    // Calculate control points for Cubic Bezier
-    // cp1 = p1 + (p2 - p0) * tension / 6
-    // cp2 = p2 - (p3 - p1) * tension / 6
-    
-    const cp1x=p1.x+(p2.x-p0.x)*tension/6;
-    const cp1y=p1.y+(p2.y-p0.y)*tension/6;
-    
-    const cp2x=p2.x-(p3.x-p1.x)*tension/6;
-    const cp2y=p2.y-(p3.y-p1.y)*tension/6;
-    
-    for(let t=0;t<1;t+=1/state.segments){
-      const t2=t*t;
-      const t3=t2*t;
-      const mt=1-t;
-      const mt2=mt*mt;
-      const mt3=mt2*mt;
-      
-      // Cubic Bezier formula: (1-t)^3*P0 + 3(1-t)^2*t*P1 + 3(1-t)*t^2*P2 + t^3*P3
-      const x=mt3*p1.x + 3*mt2*t*cp1x + 3*mt*t2*cp2x + t3*p2.x;
-      const y=mt3*p1.y + 3*mt2*t*cp1y + 3*mt*t2*cp2y + t3*p2.y;
-      
-      res.push({x,y});
-    }
-  }
-  return res;
-}
-
-function smoothPath(){
-  if(points.length<3)return;
-  points=getSplinePoints();
-  // Reduce points if too many
-  if(points.length>1000){
-    const step=Math.floor(points.length/1000);
-    points=points.filter((_,i)=>i%step===0);
-  }
-  computeFourier();
-  mode='draw';
-  setMode('draw');
-}
-
-// Fourier Logic
+// Fourier
 function dft(vals){
   const N=vals.length;
   const coeffs=[];
-  for(let k=0;k<state.harmonics;k++){
+  for(let k=0;k<params.harmonics;k++){
     let re=0,im=0;
     for(let n=0;n<N;n++){
       const phi=(2*Math.PI*k*n)/N;
@@ -506,10 +287,7 @@ function dft(vals){
     }
     re/=N;
     im/=N;
-    const freq=k;
-    const amp=Math.sqrt(re*re+im*im);
-    const phase=Math.atan2(im,re);
-    coeffs.push({re,im,freq,amp,phase});
+    coeffs.push({re,im,freq:k,amp:Math.sqrt(re*re+im*im),phase:Math.atan2(im,re)});
   }
   return coeffs;
 }
@@ -525,158 +303,187 @@ function computeFourier(){
   time=0;
 }
 
-// Interaction
-canvas.onmousedown=e=>{
-  if(mode!=='spline')return;
-  const rect=canvas.getBoundingClientRect();
-  const x=(e.clientX-rect.left)*(W/rect.width)-W/2;
-  const y=(e.clientY-rect.top)*(H/rect.height)-H/2;
-  
-  // Check if clicking existing point
-  dragPoint=points.find(p=>(p.x-x)**2+(p.y-y)**2<100);
-  
-  if(!dragPoint){
-    points.push({x,y});
-    computeFourier();
-  }
-  draw();
-};
-
-canvas.onmousemove=e=>{
-  if(mode!=='spline'||!dragPoint)return;
-  const rect=canvas.getBoundingClientRect();
-  dragPoint.x=(e.clientX-rect.left)*(W/rect.width)-W/2;
-  dragPoint.y=(e.clientY-rect.top)*(H/rect.height)-H/2;
-  computeFourier();
-  draw();
-};
-
-canvas.onmouseup=()=>dragPoint=null;
-
-function resetPoints(){
-  points=[];
-  fourierX=[];
-  fourierY=[];
-  path=[];
-  draw();
-}
-
-function togglePlay(){
-  isPlaying=!isPlaying;
-  if(isPlaying) animate();
-}
-
-// Rendering
+// Drawing
 function drawEpicycles(x,y,rotation,fourier){
   for(let i=0;i<fourier.length;i++){
     const prevX=x,prevY=y;
     const freq=fourier[i].freq;
-    const radius=fourier[i].amp*state.zoom;
+    const radius=fourier[i].amp*params.zoom;
     const phase=fourier[i].phase;
     const angle=freq*time+phase+rotation;
-    
     x+=radius*Math.cos(angle);
     y+=radius*Math.sin(angle);
     
-    ctx.strokeStyle='rgba(255,255,255,0.1)';
-    ctx.beginPath();
-    ctx.arc(prevX,prevY,radius,0,Math.PI*2);
-    ctx.stroke();
-    
-    ctx.strokeStyle='rgba(0,255,255,0.3)';
-    ctx.beginPath();
-    ctx.moveTo(prevX,prevY);
-    ctx.lineTo(x,y);
-    ctx.stroke();
+    if(mode==='draw'){
+      ctx.strokeStyle='rgba(255,255,255,0.1)';
+      ctx.beginPath();
+      ctx.arc(prevX,prevY,radius,0,Math.PI*2);
+      ctx.stroke();
+    }
   }
   return {x,y};
 }
 
-function draw(){
-  ctx.fillStyle='#000';
-  ctx.fillRect(0,0,W,H);
+function getColor(x,y,t){
+  const dx=x-W/2,dy=y-H/2;
+  const d=Math.sqrt(dx*dx+dy*dy);
+  const a=Math.atan2(dy,dx);
   
-  if(mode==='analyze'&&imgData){
-    ctx.putImageData(imgData,0,0);
-    ctx.fillStyle='rgba(0,0,0,0.7)';
+  switch(params.fillAlgo){
+    case 'gradient':
+      return `hsl(${params.hue1+(params.hue2-params.hue1)*(d/400)},80%,50%)`;
+    case 'knn':
+      const cell=Math.floor(x/params.density)*params.density;
+      return `hsl(${(params.hue1+cell)%360},70%,50%)`;
+    case 'wfc':
+      const wave=Math.sin(x*0.02+t)*Math.cos(y*0.02+t);
+      return `hsl(${params.hue1+wave*100},80%,50%)`;
+    case 'plasma':
+      const v=Math.sin(x*0.01+t)+Math.sin(y*0.01+t)+Math.sin((x+y)*0.01+t);
+      return `hsl(${params.hue1+v*60},80%,50%)`;
+  }
+}
+
+function draw(){
+  // Background
+  if(mode==='fill'){
+    // Generative background
+    const s=params.density;
+    for(let x=0;x<W;x+=s){
+      for(let y=0;y<H;y+=s){
+        ctx.fillStyle=getColor(x,y,time);
+        ctx.fillRect(x,y,s,s);
+      }
+    }
+    // Darken center for shape
+    ctx.fillStyle='rgba(0,0,0,0.8)';
+    ctx.beginPath();
+    if(path.length>0){
+      ctx.moveTo(path[0].x,path[0].y);
+      for(let p of path) ctx.lineTo(p.x,p.y);
+    }
+    ctx.fill();
+  }else{
+    ctx.fillStyle='#000';
     ctx.fillRect(0,0,W,H);
   }
+
+  // Fourier
+  const vx=drawEpicycles(W/2,100,0,fourierX);
+  const vy=drawEpicycles(100,H/2,Math.PI/2,fourierY);
+  const v={x:vx.x,y:vy.y};
   
-  // Draw control points
-  if(mode==='spline'||mode==='analyze'){
-    ctx.fillStyle='#f0f';
-    points.forEach(p=>{
-      ctx.beginPath();
-      ctx.arc(p.x+W/2,p.y+H/2,3,0,Math.PI*2);
-      ctx.fill();
-    });
-    
-    if(points.length>1){
-      ctx.strokeStyle='#f0f';
-      ctx.beginPath();
-      ctx.moveTo(points[0].x+W/2,points[0].y+H/2);
-      points.forEach(p=>ctx.lineTo(p.x+W/2,p.y+H/2));
-      if(points.length>2) ctx.closePath();
-      ctx.stroke();
-    }
+  path.unshift(v);
+  if(path.length>1000) path.pop();
+  
+  // Draw Path
+  ctx.strokeStyle=mode==='fill'?'#fff':'#0ff';
+  ctx.lineWidth=3;
+  ctx.beginPath();
+  for(let i=0;i<path.length;i++){
+    ctx.lineTo(path[i].x,path[i].y);
   }
+  ctx.stroke();
   
-  if(fourierX.length>0){
-    const vx=drawEpicycles(W/2,100,0,fourierX);
-    const vy=drawEpicycles(100,H/2,Math.PI/2,fourierY);
-    
-    const v={x:vx.x,y:vy.y};
-    path.unshift(v);
-    if(path.length>1000) path.pop();
-    
+  // Connectors
+  if(mode==='draw'){
     ctx.strokeStyle='rgba(255,255,255,0.2)';
     ctx.beginPath();
     ctx.moveTo(vx.x,vx.y);
     ctx.lineTo(v.x,v.y);
     ctx.lineTo(vy.x,vy.y);
     ctx.stroke();
-    
-    ctx.strokeStyle='#0ff';
-    ctx.lineWidth=2;
-    ctx.beginPath();
-    path.forEach((p,i)=>{
-      if(i===0) ctx.moveTo(p.x,p.y);
-      else ctx.lineTo(p.x,p.y);
-    });
-    ctx.stroke();
   }
 }
 
 function animate(){
-  if(!isPlaying)return;
-  const dt=(2*Math.PI)/points.length;
-  time+=dt*(state.speed/20);
-  if(time>2*Math.PI) time=0;
-  
-  draw();
+  if(isPlaying){
+    const dt=(2*Math.PI)/fourierX.length;
+    time+=dt*params.speed;
+    draw();
+  }
   requestAnimationFrame(animate);
 }
 
-// Init
-resetPoints();
-// Add default circle
-for(let i=0;i<20;i++){
-  const a=i/20*Math.PI*2;
-  points.push({x:Math.cos(a)*100,y:Math.sin(a)*100});
-}
-computeFourier();
-animate();
+// Image Extraction
+document.getElementById('file').onchange=e=>{
+  const file=e.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=evt=>{
+    const img=new Image();
+    img.onload=()=>{
+      const c=document.createElement('canvas');
+      const scale=Math.min(800/img.width,800/img.height);
+      c.width=img.width*scale;
+      c.height=img.height*scale;
+      const cx=c.getContext('2d');
+      cx.drawImage(img,0,0,c.width,c.height);
+      imgData=cx.getImageData(0,0,c.width,c.height);
+      processImage();
+    };
+    img.src=evt.target.result;
+  };
+  reader.readAsDataURL(file);
+};
 
-// Parallax
-document.addEventListener('mousemove',e=>{
-  const x=(e.clientX/window.innerWidth)*100;
-  const y=(e.clientY/window.innerHeight)*100;
-  document.querySelectorAll('.parallax-layer').forEach((layer,i)=>{
-    const speed=1+i*0.5;
-    layer.style.setProperty('--x',x*speed+'%');
-    layer.style.setProperty('--y',y*speed+'%');
-  });
-});
+function processImage(){
+  if(!imgData)return;
+  const d=imgData.data;
+  const w=imgData.width;
+  const h=imgData.height;
+  const edges=[];
+  
+  // Improved edge detection (Gradient based)
+  for(let y=1;y<h-1;y+=2){
+    for(let x=1;x<w-1;x+=2){
+      const i=(y*w+x)*4;
+      const gx = (d[i+4]+d[i+5]+d[i+6]) - (d[i-4]+d[i-3]+d[i-2]);
+      const gy = (d[i+w*4]+d[i+w*4+1]+d[i+w*4+2]) - (d[i-w*4]+d[i-w*4+1]+d[i-w*4+2]);
+      const mag = Math.sqrt(gx*gx + gy*gy);
+      
+      if(mag > params.threshold){ 
+        edges.push({x:x-w/2,y:y-h/2});
+      }
+    }
+  }
+  
+  // Sort to single path (Nearest Neighbor)
+  if(edges.length>0){
+    points=[edges[0]];
+    edges.splice(0,1);
+    let current=points[0];
+    
+    while(edges.length>0){
+      let nearest=0;
+      let minDist=Infinity;
+      // Look only at 500 random samples for speed if too many
+      const step=Math.max(1,Math.floor(edges.length/500));
+      
+      for(let i=0;i<edges.length;i+=step){
+        const dist=(edges[i].x-current.x)**2+(edges[i].y-current.y)**2;
+        if(dist<minDist){
+          minDist=dist;
+          nearest=i;
+        }
+      }
+      current=edges[nearest];
+      points.push(current);
+      edges.splice(nearest,1);
+    }
+    
+    // Simplify
+    const skip=Math.floor(params.simplify);
+    points=points.filter((_,i)=>i%skip===0);
+    
+    computeFourier();
+  }
+}
+
+function togglePlay(){isPlaying=!isPlaying}
+function resetPath(){points=[];path=[];}
+
+animate();
 </script>
 </body>
 </html>

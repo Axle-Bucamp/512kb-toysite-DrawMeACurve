@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fourier Art Generator - 512kb</title>
+<title>Fourier Art Generator V2 - Splines & Analysis</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{
@@ -92,21 +92,8 @@ h1{
   border:1px solid rgba(0,255,255,.3);
   backdrop-filter:blur(10px);
   position:relative;
-  overflow:hidden
-}
-.canvas-wrapper::before{
-  content:'';
-  position:absolute;
-  top:-50%;
-  left:-50%;
-  width:200%;
-  height:200%;
-  background:radial-gradient(circle,rgba(0,255,255,.05) 0%,transparent 70%);
-  animation:rotate 30s linear infinite;
-  pointer-events:none
-}
-@keyframes rotate{
-  to{transform:rotate(360deg)}
+  overflow:hidden;
+  min-height:600px
 }
 #canvas{
   display:block;
@@ -116,7 +103,8 @@ h1{
   margin:0 auto;
   border-radius:8px;
   position:relative;
-  z-index:1
+  z-index:1;
+  cursor:crosshair
 }
 .controls{
   background:rgba(20,20,30,.95);
@@ -162,36 +150,40 @@ input[type=range]::-webkit-slider-thumb{
 input[type=range]::-webkit-slider-thumb:hover{
   transform:scale(1.2)
 }
-input[type=range]::-moz-range-thumb{
-  width:16px;
-  height:16px;
-  background:linear-gradient(135deg,#00f5ff,#00ff88);
-  border-radius:50%;
-  cursor:pointer;
-  border:none
+input[type=file]{
+  display:none
 }
-input[type=number],select{
+.file-label{
+  display:block;
   width:100%;
-  padding:10px;
+  padding:12px;
   background:rgba(255,255,255,.1);
-  border:1px solid rgba(255,255,255,.2);
-  color:#fff;
-  border-radius:6px;
-  font-size:13px;
-  transition:all .3s
-}
-input[type=number]:focus,select:focus{
-  outline:none;
-  border-color:#0ff;
-  box-shadow:0 0 10px rgba(0,255,255,.3)
-}
-.value{
-  display:inline-block;
-  margin-left:10px;
-  opacity:.6;
+  border:1px dashed rgba(0,255,255,.5);
+  border-radius:8px;
+  text-align:center;
+  cursor:pointer;
+  transition:all .3s;
   font-size:12px;
-  font-weight:normal
+  text-transform:uppercase;
+  letter-spacing:1px
 }
+.file-label:hover{
+  background:rgba(0,255,255,.1);
+  border-color:#0ff
+}
+.section-title{
+  font-size:13px;
+  font-weight:700;
+  margin-bottom:15px;
+  padding-bottom:10px;
+  border-bottom:1px solid rgba(0,255,255,.3);
+  background:linear-gradient(135deg,#00f5ff,#00ff88);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  margin-top:20px
+}
+.section-title:first-child{margin-top:0}
 button{
   width:100%;
   padding:12px;
@@ -212,42 +204,29 @@ button:hover{
   transform:translateY(-2px);
   box-shadow:0 6px 20px rgba(0,255,255,.5)
 }
-button:active{
-  transform:translateY(0)
+.tabs{
+  display:flex;
+  gap:10px;
+  margin-bottom:20px
 }
-.section-title{
-  font-size:13px;
-  font-weight:700;
-  margin-bottom:15px;
-  padding-bottom:10px;
-  border-bottom:1px solid rgba(0,255,255,.3);
-  background:linear-gradient(135deg,#00f5ff,#00ff88);
-  -webkit-background-clip:text;
-  -webkit-text-fill-color:transparent;
-  background-clip:text
+.tab{
+  flex:1;
+  padding:10px;
+  background:rgba(255,255,255,.1);
+  border:none;
+  color:#fff;
+  cursor:pointer;
+  border-radius:6px;
+  font-size:11px;
+  text-transform:uppercase;
+  transition:all .3s
 }
-.preset-grid{
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:8px;
-  margin-top:10px
+.tab.active{
+  background:#0ff;
+  color:#000;
+  font-weight:bold
 }
-.preset-btn{
-  padding:8px;
-  font-size:10px;
-  margin:0
-}
-footer{
-  text-align:center;
-  padding:30px;
-  opacity:.5;
-  font-size:12px;
-  letter-spacing:1px
-}
-::-webkit-scrollbar{width:8px}
-::-webkit-scrollbar-track{background:rgba(0,0,0,.3)}
-::-webkit-scrollbar-thumb{background:rgba(0,255,255,.3);border-radius:4px}
-::-webkit-scrollbar-thumb:hover{background:rgba(0,255,255,.5)}
+.hidden{display:none}
 </style>
 </head>
 <body>
@@ -259,8 +238,8 @@ footer{
 
 <div class="container">
   <header>
-    <h1>⚡ Fourier Art Generator</h1>
-    <p class="subtitle">Générateur d'images procédurales | &lt;512KB</p>
+    <h1>⚡ Fourier Art V2</h1>
+    <p class="subtitle">Analyse d'image • Splines de Bézier • Fourier</p>
   </header>
 
   <div class="main-content">
@@ -269,426 +248,426 @@ footer{
     </div>
 
     <div class="controls">
-      <div class="section-title">🎨 Algorithme Génératif</div>
-      
-      <div class="control-group">
-        <label>Mode de rendu</label>
-        <select id="algo">
-          <option value="gradient">Dégradé harmonique</option>
-          <option value="voronoi">Diagramme de Voronoï</option>
-          <option value="wave">Fonction d'onde</option>
-          <option value="plasma">Plasma fractal</option>
-        </select>
+      <div class="tabs">
+        <button class="tab active" onclick="setMode('draw')">Dessin</button>
+        <button class="tab" onclick="setMode('analyze')">Analyse</button>
+        <button class="tab" onclick="setMode('spline')">Splines</button>
       </div>
 
-      <div class="control-group">
-        <label>Teinte début <span class="value" id="hue1Val">180</span></label>
-        <input type="range" id="hue1" min="0" max="360" value="180">
+      <div id="analyze-controls" class="hidden">
+        <div class="section-title">📸 Analyse d'image</div>
+        <div class="control-group">
+          <input type="file" id="imgUpload" accept="image/*">
+          <label for="imgUpload" class="file-label">📁 Charger une image</label>
+        </div>
+        <div class="control-group">
+          <label>Seuil de détection <span class="value" id="threshVal">128</span></label>
+          <input type="range" id="threshold" min="0" max="255" value="128">
+        </div>
+        <div class="control-group">
+          <label>Points d'échantillonnage <span class="value" id="sampleVal">500</span></label>
+          <input type="range" id="samples" min="100" max="1000" value="500">
+        </div>
+        <button onclick="processImage()">⚡ Extraire Fourier</button>
       </div>
 
-      <div class="control-group">
-        <label>Teinte fin <span class="value" id="hue2Val">280</span></label>
-        <input type="range" id="hue2" min="0" max="360" value="280">
+      <div id="spline-controls" class="hidden">
+        <div class="section-title">✒️ Splines de Bézier</div>
+        <div class="control-group">
+          <label>Tension <span class="value" id="tensionVal">0.5</span></label>
+          <input type="range" id="tension" min="0" max="100" value="50">
+        </div>
+        <div class="control-group">
+          <label>Segments <span class="value" id="segVal">20</span></label>
+          <input type="range" id="segments" min="5" max="50" value="20">
+        </div>
+        <button onclick="smoothPath()">✨ Lisser le tracé</button>
+        <button onclick="resetPoints()">🗑️ Effacer points</button>
+        <p style="font-size:11px;opacity:0.7;margin-top:10px">
+          🖱️ Cliquez pour ajouter des points<br>
+          ✋ Glissez pour déplacer
+        </p>
       </div>
 
-      <div class="control-group">
-        <label>Saturation <span class="value" id="satVal">80%</span></label>
-        <input type="range" id="sat" min="0" max="100" value="80">
+      <div id="draw-controls">
+        <div class="section-title">🎨 Rendu</div>
+        <div class="control-group">
+          <label>Harmoniques <span class="value" id="harmVal">50</span></label>
+          <input type="range" id="harmonics" min="5" max="200" value="50">
+        </div>
+        <div class="control-group">
+          <label>Vitesse <span class="value" id="speedVal">20</span></label>
+          <input type="range" id="speed" min="1" max="100" value="20">
+        </div>
+        <div class="control-group">
+          <label>Zoom <span class="value" id="zoomVal">1.0</span></label>
+          <input type="range" id="zoom" min="10" max="300" value="100">
+        </div>
+        <button onclick="togglePlay()">⏯️ Pause/Lecture</button>
       </div>
-
-      <div class="control-group">
-        <label>Luminosité <span class="value" id="lightVal">60%</span></label>
-        <input type="range" id="light" min="20" max="90" value="60">
-      </div>
-
-      <div class="section-title">🌊 Transformée de Fourier</div>
-
-      <div class="control-group">
-        <label>Harmoniques <span class="value" id="harmVal">8</span></label>
-        <input type="range" id="harmonics" min="3" max="20" value="8">
-      </div>
-
-      <div class="control-group">
-        <label>Amplitude <span class="value" id="ampVal">100</span></label>
-        <input type="range" id="amplitude" min="20" max="200" value="100">
-      </div>
-
-      <div class="control-group">
-        <label>Lissage <span class="value" id="smoothVal">0.95</span></label>
-        <input type="range" id="smooth" min="80" max="100" value="95">
-      </div>
-
-      <div class="control-group">
-        <label>Vitesse <span class="value" id="speedVal">30</span></label>
-        <input type="range" id="speed" min="5" max="100" value="30">
-      </div>
-
-      <div class="section-title">🎲 Paramètres génératifs</div>
-
-      <div class="control-group">
-        <label>Graine aléatoire</label>
-        <input type="number" id="seed" value="42" min="1" max="9999">
-      </div>
-
-      <div class="control-group">
-        <label>Variation <span class="value" id="varVal">20%</span></label>
-        <input type="range" id="variation" min="0" max="100" value="20">
-      </div>
-
-      <div class="preset-grid">
-        <button class="preset-btn" onclick="loadPreset('cosmic')">Cosmique</button>
-        <button class="preset-btn" onclick="loadPreset('ocean')">Océan</button>
-        <button class="preset-btn" onclick="loadPreset('fire')">Feu</button>
-        <button class="preset-btn" onclick="loadPreset('forest')">Forêt</button>
-      </div>
-
-      <button onclick="reset()">🔄 Réinitialiser</button>
-      <button onclick="randomize()">🎲 Aléatoire</button>
-      <button onclick="saveImage()">💾 Télécharger PNG</button>
     </div>
   </div>
-
-  <footer>
-    Fourier Art Generator • Algorithmes génératifs légers • &lt;512KB
-  </footer>
 </div>
 
 <script>
 const canvas=document.getElementById('canvas');
-const ctx=canvas.getContext('2d',{alpha:false});
+const ctx=canvas.getContext('2d');
 const W=canvas.width,H=canvas.height;
 
-// Seeded random
-let seed=42;
-function rnd(){seed=(seed*9301+49297)%233280;return seed/233280}
+let mode='draw'; // draw, analyze, spline
+let points=[]; // Control points for spline
+let fourierX=[],fourierY=[]; // Fourier coefficients
+let path=[]; // Drawing path
+let time=0;
+let isPlaying=true;
+let dragPoint=null;
+let imgData=null;
 
-// Parameters
-let params={
-  algo:'gradient',
-  hue1:180,
-  hue2:280,
-  sat:80,
-  light:60,
-  harmonics:8,
-  amplitude:100,
-  smooth:0.95,
-  speed:30,
-  variation:20
+// State
+const state={
+  threshold:128,
+  samples:500,
+  tension:0.5,
+  segments:20,
+  harmonics:50,
+  speed:20,
+  zoom:1.0
 };
 
-// Fourier coefficients - smooth harmonics only (no noise)
-let fourierX=[],fourierY=[];
-
-function initFourier(){
-  fourierX=[];
-  fourierY=[];
-  const n=params.harmonics;
-  const amp=params.amplitude;
-  const smoothFactor=params.smooth;
+// UI Handlers
+function setMode(m){
+  mode=m;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  event.target.classList.add('active');
   
-  // Generate smooth harmonic decomposition
-  for(let i=0;i<=n;i++){
-    const freq=i;
-    // Smooth decay for higher frequencies
-    const decay=Math.pow(smoothFactor,i);
-    const baseAmp=amp/(i+1)*decay;
-    
-    // Use seeded random for reproducible but varied shapes
-    const phaseX=rnd()*Math.PI*2;
-    const phaseY=rnd()*Math.PI*2;
-    const ampVarX=1+(rnd()-0.5)*params.variation/100;
-    const ampVarY=1+(rnd()-0.5)*params.variation/100;
-    
-    fourierX.push({
-      freq:freq,
-      amp:baseAmp*ampVarX,
-      phase:phaseX
-    });
-    
-    fourierY.push({
-      freq:freq,
-      amp:baseAmp*ampVarY,
-      phase:phaseY
-    });
-  }
-}
-
-// Compute point from Fourier series
-function fourierPoint(t,coeffs){
-  let x=0,y=0;
-  for(let c of coeffs){
-    const angle=c.freq*t+c.phase;
-    x+=c.amp*Math.cos(angle);
-    y+=c.amp*Math.sin(angle);
-  }
-  return {x,y};
-}
-
-// Generative algorithms
-function colorAt(x,y,t){
-  const cx=W/2,cy=H/2;
-  const dx=x-cx,dy=y-cy;
-  const dist=Math.sqrt(dx*dx+dy*dy);
-  const angle=Math.atan2(dy,dx);
+  document.getElementById('analyze-controls').classList.add('hidden');
+  document.getElementById('spline-controls').classList.add('hidden');
+  document.getElementById('draw-controls').classList.remove('hidden');
   
-  let h,s=params.sat,l=params.light;
-  
-  switch(params.algo){
-    case 'gradient':
-      // Smooth radial gradient
-      h=params.hue1+(params.hue2-params.hue1)*(dist/W);
-      break;
-      
-    case 'voronoi':
-      // Voronoi-like cells
-      const cellSize=80;
-      const cellX=Math.floor(x/cellSize);
-      const cellY=Math.floor(y/cellSize);
-      const cellHash=(cellX*73856093^cellY*19349663)%360;
-      h=(params.hue1+cellHash)%360;
-      break;
-      
-    case 'wave':
-      // Wave function
-      const waveFreq=0.02;
-      const wave=Math.sin(x*waveFreq+t)*Math.cos(y*waveFreq+t);
-      h=params.hue1+(params.hue2-params.hue1)*(wave*0.5+0.5);
-      break;
-      
-    case 'plasma':
-      // Plasma effect
-      const v1=Math.sin(x*0.01+t);
-      const v2=Math.sin(y*0.01+t);
-      const v3=Math.sin((x+y)*0.01+t);
-      const v4=Math.sin(Math.sqrt(dx*dx+dy*dy)*0.01+t);
-      const plasma=(v1+v2+v3+v4)/4;
-      h=params.hue1+(params.hue2-params.hue1)*(plasma*0.5+0.5);
-      break;
+  if(m==='analyze'){
+    document.getElementById('analyze-controls').classList.remove('hidden');
+    document.getElementById('draw-controls').classList.add('hidden');
+  }else if(m==='spline'){
+    document.getElementById('spline-controls').classList.remove('hidden');
   }
   
-  return `hsl(${h%360},${s}%,${l}%)`;
+  draw();
 }
 
-// Animation
-let time=0;
-let path=[];
+function updateVal(id,key,scale=1){
+  document.getElementById(id).oninput=e=>{
+    state[key]=parseFloat(e.target.value)/scale;
+    document.getElementById(id+'Val').textContent=state[key];
+    if(mode==='analyze'&&imgData) processImage();
+    if(mode==='spline') draw();
+  };
+}
 
-function animate(){
-  // Background with trail effect
-  ctx.fillStyle='rgba(0,0,0,0.05)';
-  ctx.fillRect(0,0,W,H);
+updateVal('threshold','threshold');
+updateVal('samples','samples');
+updateVal('tension','tension',100);
+updateVal('segments','segments');
+updateVal('harmonics','harmonics');
+updateVal('speed','speed');
+updateVal('zoom','zoom',100);
+
+// Image Analysis
+document.getElementById('imgUpload').onchange=e=>{
+  const file=e.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=evt=>{
+    const img=new Image();
+    img.onload=()=>{
+      const tempC=document.createElement('canvas');
+      tempC.width=W;
+      tempC.height=H;
+      const tCtx=tempC.getContext('2d');
+      // Fit image to canvas
+      const scale=Math.min(W/img.width,H/img.height)*0.8;
+      const w=img.width*scale;
+      const h=img.height*scale;
+      tCtx.drawImage(img,(W-w)/2,(H-h)/2,w,h);
+      imgData=tCtx.getImageData(0,0,W,H);
+      processImage();
+    };
+    img.src=evt.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+function processImage(){
+  if(!imgData)return;
+  const data=imgData.data;
+  const edges=[];
   
-  time+=params.speed/1000;
-  
-  // Compute current point
-  const px=fourierPoint(time,fourierX);
-  const py=fourierPoint(-time,fourierY);
-  
-  const x=W/2+px.x;
-  const y=H/2+py.y;
-  
-  path.push({x,y,t:time});
-  if(path.length>1000)path.shift();
-  
-  // Draw generative background
-  if(path.length>50&&Math.floor(time*10)%5===0){
-    const gridSize=20;
-    for(let i=0;i<W;i+=gridSize){
-      for(let j=0;j<H;j+=gridSize){
-        // Check if near path
-        let nearPath=false;
-        for(let p of path){
-          const dx=i-p.x,dy=j-p.y;
-          if(dx*dx+dy*dy<10000){
-            nearPath=true;
-            break;
-          }
-        }
-        if(nearPath){
-          ctx.fillStyle=colorAt(i,j,time);
-          ctx.fillRect(i,j,gridSize,gridSize);
+  // Edge detection
+  for(let y=1;y<H-1;y+=2){
+    for(let x=1;x<W-1;x+=2){
+      const i=(y*W+x)*4;
+      const b=(data[i]+data[i+1]+data[i+2])/3;
+      if(b>state.threshold){
+        // Simple neighbor check
+        if((data[i-4]+data[i+4]+data[i-W*4]+data[i+W*4])/12 < state.threshold){
+          edges.push({x:x-W/2,y:y-H/2});
         }
       }
     }
   }
   
-  // Draw epicycles for X
-  ctx.save();
-  ctx.translate(100,H/2);
-  let x1=0,y1=0;
-  for(let c of fourierX){
-    const prevX=x1,prevY=y1;
-    const angle=c.freq*time+c.phase;
-    x1+=c.amp*Math.cos(angle);
-    y1+=c.amp*Math.sin(angle);
+  // Sort points to form a path (nearest neighbor)
+  if(edges.length>0){
+    points=[edges[0]];
+    edges.splice(0,1);
+    while(edges.length>0){
+      const last=points[points.length-1];
+      let nearest=0,minDist=Infinity;
+      // Optimization: check only subset if too large
+      const limit=Math.min(edges.length,1000);
+      for(let i=0;i<limit;i++){
+        const d=(edges[i].x-last.x)**2+(edges[i].y-last.y)**2;
+        if(d<minDist){minDist=d;nearest=i;}
+      }
+      points.push(edges[nearest]);
+      edges.splice(nearest,1);
+    }
     
-    // Circle
-    ctx.strokeStyle=`hsla(${params.hue1},${params.sat}%,${params.light}%,0.2)`;
-    ctx.lineWidth=1;
+    // Downsample
+    const step=Math.max(1,Math.floor(points.length/state.samples));
+    points=points.filter((_,i)=>i%step===0);
+    
+    computeFourier();
+  }
+}
+
+// Spline Logic
+function getSplinePoints(){
+  if(points.length<2)return points;
+  const res=[];
+  const tension=state.tension; // 0 to 1
+  
+  // Catmull-Rom to Cubic Bezier conversion for smoother curves
+  for(let i=0;i<points.length;i++){
+    const p0=points[i===0?points.length-1:i-1];
+    const p1=points[i];
+    const p2=points[(i+1)%points.length];
+    const p3=points[(i+2)%points.length];
+    
+    // Calculate control points for Cubic Bezier
+    // cp1 = p1 + (p2 - p0) * tension / 6
+    // cp2 = p2 - (p3 - p1) * tension / 6
+    
+    const cp1x=p1.x+(p2.x-p0.x)*tension/6;
+    const cp1y=p1.y+(p2.y-p0.y)*tension/6;
+    
+    const cp2x=p2.x-(p3.x-p1.x)*tension/6;
+    const cp2y=p2.y-(p3.y-p1.y)*tension/6;
+    
+    for(let t=0;t<1;t+=1/state.segments){
+      const t2=t*t;
+      const t3=t2*t;
+      const mt=1-t;
+      const mt2=mt*mt;
+      const mt3=mt2*mt;
+      
+      // Cubic Bezier formula: (1-t)^3*P0 + 3(1-t)^2*t*P1 + 3(1-t)*t^2*P2 + t^3*P3
+      const x=mt3*p1.x + 3*mt2*t*cp1x + 3*mt*t2*cp2x + t3*p2.x;
+      const y=mt3*p1.y + 3*mt2*t*cp1y + 3*mt*t2*cp2y + t3*p2.y;
+      
+      res.push({x,y});
+    }
+  }
+  return res;
+}
+
+function smoothPath(){
+  if(points.length<3)return;
+  points=getSplinePoints();
+  // Reduce points if too many
+  if(points.length>1000){
+    const step=Math.floor(points.length/1000);
+    points=points.filter((_,i)=>i%step===0);
+  }
+  computeFourier();
+  mode='draw';
+  setMode('draw');
+}
+
+// Fourier Logic
+function dft(vals){
+  const N=vals.length;
+  const coeffs=[];
+  for(let k=0;k<state.harmonics;k++){
+    let re=0,im=0;
+    for(let n=0;n<N;n++){
+      const phi=(2*Math.PI*k*n)/N;
+      re+=vals[n]*Math.cos(phi);
+      im-=vals[n]*Math.sin(phi);
+    }
+    re/=N;
+    im/=N;
+    const freq=k;
+    const amp=Math.sqrt(re*re+im*im);
+    const phase=Math.atan2(im,re);
+    coeffs.push({re,im,freq,amp,phase});
+  }
+  return coeffs;
+}
+
+function computeFourier(){
+  const x=points.map(p=>p.x);
+  const y=points.map(p=>p.y);
+  fourierX=dft(x);
+  fourierY=dft(y);
+  fourierX.sort((a,b)=>b.amp-a.amp);
+  fourierY.sort((a,b)=>b.amp-a.amp);
+  path=[];
+  time=0;
+}
+
+// Interaction
+canvas.onmousedown=e=>{
+  if(mode!=='spline')return;
+  const rect=canvas.getBoundingClientRect();
+  const x=(e.clientX-rect.left)*(W/rect.width)-W/2;
+  const y=(e.clientY-rect.top)*(H/rect.height)-H/2;
+  
+  // Check if clicking existing point
+  dragPoint=points.find(p=>(p.x-x)**2+(p.y-y)**2<100);
+  
+  if(!dragPoint){
+    points.push({x,y});
+    computeFourier();
+  }
+  draw();
+};
+
+canvas.onmousemove=e=>{
+  if(mode!=='spline'||!dragPoint)return;
+  const rect=canvas.getBoundingClientRect();
+  dragPoint.x=(e.clientX-rect.left)*(W/rect.width)-W/2;
+  dragPoint.y=(e.clientY-rect.top)*(H/rect.height)-H/2;
+  computeFourier();
+  draw();
+};
+
+canvas.onmouseup=()=>dragPoint=null;
+
+function resetPoints(){
+  points=[];
+  fourierX=[];
+  fourierY=[];
+  path=[];
+  draw();
+}
+
+function togglePlay(){
+  isPlaying=!isPlaying;
+  if(isPlaying) animate();
+}
+
+// Rendering
+function drawEpicycles(x,y,rotation,fourier){
+  for(let i=0;i<fourier.length;i++){
+    const prevX=x,prevY=y;
+    const freq=fourier[i].freq;
+    const radius=fourier[i].amp*state.zoom;
+    const phase=fourier[i].phase;
+    const angle=freq*time+phase+rotation;
+    
+    x+=radius*Math.cos(angle);
+    y+=radius*Math.sin(angle);
+    
+    ctx.strokeStyle='rgba(255,255,255,0.1)';
     ctx.beginPath();
-    ctx.arc(prevX,prevY,c.amp,0,Math.PI*2);
+    ctx.arc(prevX,prevY,radius,0,Math.PI*2);
     ctx.stroke();
     
-    // Radius
-    ctx.strokeStyle=`hsla(${params.hue1},${params.sat}%,${params.light+10}%,0.5)`;
-    ctx.lineWidth=2;
+    ctx.strokeStyle='rgba(0,255,255,0.3)';
     ctx.beginPath();
     ctx.moveTo(prevX,prevY);
-    ctx.lineTo(x1,y1);
+    ctx.lineTo(x,y);
     ctx.stroke();
   }
-  ctx.restore();
+  return {x,y};
+}
+
+function draw(){
+  ctx.fillStyle='#000';
+  ctx.fillRect(0,0,W,H);
   
-  // Draw epicycles for Y
-  ctx.save();
-  ctx.translate(W/2,100);
-  let x2=0,y2=0;
-  for(let c of fourierY){
-    const prevX=x2,prevY=y2;
-    const angle=c.freq*(-time)+c.phase;
-    x2+=c.amp*Math.cos(angle);
-    y2+=c.amp*Math.sin(angle);
+  if(mode==='analyze'&&imgData){
+    ctx.putImageData(imgData,0,0);
+    ctx.fillStyle='rgba(0,0,0,0.7)';
+    ctx.fillRect(0,0,W,H);
+  }
+  
+  // Draw control points
+  if(mode==='spline'||mode==='analyze'){
+    ctx.fillStyle='#f0f';
+    points.forEach(p=>{
+      ctx.beginPath();
+      ctx.arc(p.x+W/2,p.y+H/2,3,0,Math.PI*2);
+      ctx.fill();
+    });
     
-    ctx.strokeStyle=`hsla(${params.hue2},${params.sat}%,${params.light}%,0.2)`;
-    ctx.lineWidth=1;
+    if(points.length>1){
+      ctx.strokeStyle='#f0f';
+      ctx.beginPath();
+      ctx.moveTo(points[0].x+W/2,points[0].y+H/2);
+      points.forEach(p=>ctx.lineTo(p.x+W/2,p.y+H/2));
+      if(points.length>2) ctx.closePath();
+      ctx.stroke();
+    }
+  }
+  
+  if(fourierX.length>0){
+    const vx=drawEpicycles(W/2,100,0,fourierX);
+    const vy=drawEpicycles(100,H/2,Math.PI/2,fourierY);
+    
+    const v={x:vx.x,y:vy.y};
+    path.unshift(v);
+    if(path.length>1000) path.pop();
+    
+    ctx.strokeStyle='rgba(255,255,255,0.2)';
     ctx.beginPath();
-    ctx.arc(prevX,prevY,c.amp,0,Math.PI*2);
+    ctx.moveTo(vx.x,vx.y);
+    ctx.lineTo(v.x,v.y);
+    ctx.lineTo(vy.x,vy.y);
     ctx.stroke();
     
-    ctx.strokeStyle=`hsla(${params.hue2},${params.sat}%,${params.light+10}%,0.5)`;
+    ctx.strokeStyle='#0ff';
     ctx.lineWidth=2;
     ctx.beginPath();
-    ctx.moveTo(prevX,prevY);
-    ctx.lineTo(x2,y2);
+    path.forEach((p,i)=>{
+      if(i===0) ctx.moveTo(p.x,p.y);
+      else ctx.lineTo(p.x,p.y);
+    });
     ctx.stroke();
   }
-  ctx.restore();
+}
+
+function animate(){
+  if(!isPlaying)return;
+  const dt=(2*Math.PI)/points.length;
+  time+=dt*(state.speed/20);
+  if(time>2*Math.PI) time=0;
   
-  // Draw path with gradient
-  ctx.lineWidth=3;
-  ctx.lineCap='round';
-  ctx.lineJoin='round';
-  for(let i=1;i<path.length;i++){
-    const alpha=(i/path.length)*0.9;
-    const h=params.hue1+(params.hue2-params.hue1)*(i/path.length);
-    ctx.strokeStyle=`hsla(${h},${params.sat}%,${params.light}%,${alpha})`;
-    ctx.beginPath();
-    ctx.moveTo(path[i-1].x,path[i-1].y);
-    ctx.lineTo(path[i].x,path[i].y);
-    ctx.stroke();
-  }
-  
-  // Draw current point
-  if(path.length>0){
-    const last=path[path.length-1];
-    ctx.fillStyle=`hsl(${(params.hue1+params.hue2)/2},${params.sat}%,${params.light+20}%)`;
-    ctx.beginPath();
-    ctx.arc(last.x,last.y,6,0,Math.PI*2);
-    ctx.fill();
-    ctx.strokeStyle=`hsl(${(params.hue1+params.hue2)/2},100%,80%)`;
-    ctx.lineWidth=2;
-    ctx.stroke();
-  }
-  
+  draw();
   requestAnimationFrame(animate);
 }
 
-// Controls
-function updateParam(id,key,suffix=''){
-  document.getElementById(id).oninput=e=>{
-    const val=parseFloat(e.target.value);
-    params[key]=key==='smooth'?val/100:val;
-    document.getElementById(id+'Val').textContent=val+suffix;
-    if(key==='harmonics'||key==='amplitude'||key==='smooth'||key==='variation'){
-      initFourier();
-    }
-  };
+// Init
+resetPoints();
+// Add default circle
+for(let i=0;i<20;i++){
+  const a=i/20*Math.PI*2;
+  points.push({x:Math.cos(a)*100,y:Math.sin(a)*100});
 }
+computeFourier();
+animate();
 
-updateParam('algo','algo');
-document.getElementById('algo').onchange=e=>{params.algo=e.target.value};
-updateParam('hue1','hue1');
-updateParam('hue2','hue2');
-updateParam('sat','sat','%');
-updateParam('light','light','%');
-updateParam('harmonics','harmonics');
-updateParam('amplitude','amplitude');
-updateParam('smooth','smooth');
-updateParam('speed','speed');
-updateParam('variation','variation','%');
-
-document.getElementById('seed').oninput=e=>{
-  seed=parseInt(e.target.value)||42;
-  initFourier();
-};
-
-function reset(){
-  time=0;
-  path=[];
-  ctx.fillStyle='#000';
-  ctx.fillRect(0,0,W,H);
-}
-
-function randomize(){
-  params.hue1=Math.floor(Math.random()*360);
-  params.hue2=Math.floor(Math.random()*360);
-  params.sat=60+Math.floor(Math.random()*40);
-  params.harmonics=5+Math.floor(Math.random()*10);
-  seed=Math.floor(Math.random()*9999);
-  
-  document.getElementById('hue1').value=params.hue1;
-  document.getElementById('hue2').value=params.hue2;
-  document.getElementById('sat').value=params.sat;
-  document.getElementById('harmonics').value=params.harmonics;
-  document.getElementById('seed').value=seed;
-  
-  document.getElementById('hue1Val').textContent=params.hue1;
-  document.getElementById('hue2Val').textContent=params.hue2;
-  document.getElementById('satVal').textContent=params.sat+'%';
-  document.getElementById('harmVal').textContent=params.harmonics;
-  
-  initFourier();
-  reset();
-}
-
-function loadPreset(name){
-  const presets={
-    cosmic:{hue1:240,hue2:300,sat:90,light:60,algo:'plasma'},
-    ocean:{hue1:180,hue2:220,sat:80,light:55,algo:'wave'},
-    fire:{hue1:0,hue2:60,sat:100,light:60,algo:'gradient'},
-    forest:{hue1:90,hue2:150,sat:70,light:50,algo:'voronoi'}
-  };
-  const p=presets[name];
-  if(!p)return;
-  
-  params.hue1=p.hue1;
-  params.hue2=p.hue2;
-  params.sat=p.sat;
-  params.light=p.light;
-  params.algo=p.algo;
-  
-  document.getElementById('hue1').value=p.hue1;
-  document.getElementById('hue2').value=p.hue2;
-  document.getElementById('sat').value=p.sat;
-  document.getElementById('light').value=p.light;
-  document.getElementById('algo').value=p.algo;
-  
-  document.getElementById('hue1Val').textContent=p.hue1;
-  document.getElementById('hue2Val').textContent=p.hue2;
-  document.getElementById('satVal').textContent=p.sat+'%';
-  document.getElementById('lightVal').textContent=p.light+'%';
-  
-  reset();
-}
-
-function saveImage(){
-  const link=document.createElement('a');
-  link.download='fourier-art-'+Date.now()+'.png';
-  link.href=canvas.toDataURL();
-  link.click();
-}
-
-// Parallax effect
+// Parallax
 document.addEventListener('mousemove',e=>{
   const x=(e.clientX/window.innerWidth)*100;
   const y=(e.clientY/window.innerHeight)*100;
@@ -698,12 +677,6 @@ document.addEventListener('mousemove',e=>{
     layer.style.setProperty('--y',y*speed+'%');
   });
 });
-
-// Initialize
-initFourier();
-ctx.fillStyle='#000';
-ctx.fillRect(0,0,W,H);
-animate();
 </script>
 </body>
 </html>

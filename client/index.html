@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fourier Art V5</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#050510;font-family:system-ui,sans-serif;color:#fff;min-height:100vh;overflow:hidden}.C{display:grid;grid-template-columns:1fr 300px;height:100vh}@media(max-width:800px){.C{grid-template-columns:1fr;height:auto;overflow-y:auto}}.A{position:relative;background:radial-gradient(circle at center,#1a1a2e 0,#000 100%);display:flex;align-items:center;justify-content:center}canvas{box-shadow:0 0 50px rgba(0,255,255,.1);border-radius:4px;background:#000}.S{background:rgba(20,20,30,.95);border-left:1px solid rgba(255,255,255,.1);padding:20px;overflow-y:auto;backdrop-filter:blur(10px)}h1{font-size:24px;background:linear-gradient(to right,#0ff,#0f8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:20px;font-weight:800}.G{margin-bottom:15px}label{display:flex;justify-content:space-between;font-size:11px;text-transform:uppercase;margin-bottom:5px;color:#88a}input[type=range]{width:100%;height:4px;background:#334;border-radius:2px;appearance:none;outline:none}input[type=range]::-webkit-slider-thumb{appearance:none;width:14px;height:14px;background:#0ff;border-radius:50%;cursor:pointer}select{width:100%;padding:8px;background:#223;border:1px solid #445;color:#fff;border-radius:4px}button{width:100%;padding:10px;margin-top:10px;background:linear-gradient(45deg,#0ff,#06f);border:none;border-radius:6px;color:#fff;font-weight:bold;cursor:pointer}button:hover{filter:brightness(1.2)}.sec{background:#334;color:#ccc}.tabs{display:flex;gap:5px;margin-bottom:20px;background:#223;padding:4px;border-radius:6px}.tab{flex:1;text-align:center;padding:6px;font-size:11px;cursor:pointer;border-radius:4px;color:#889}.tab.act{background:#0ff;color:#000;font-weight:bold}.hid{display:none}.drop{border:2px dashed #445;padding:20px;text-align:center;border-radius:8px;cursor:pointer}.drop:hover{border-color:#0ff}</style></head><body><div class="C"><div class="A"><canvas id="c" width="800" height="800"></canvas></div><div class="S"><h1>⚡ Fourier V5</h1><div class="tabs"><div class="tab act" onclick="M('draw')">DESSIN</div><div class="tab" onclick="M('spline')">SPLINES</div><div class="tab" onclick="M('fill')">REMPLIR</div><div class="tab" onclick="M('ext')">EXTRAIT</div></div><div id="draw-p"><div class="G"><label>Harmoniques <span id="hV">50</span></label><input type="range" id="h" min="5" max="300" value="50"></div><div class="G"><label>Vitesse <span id="sV">1.0</span></label><input type="range" id="s" min="1" max="50" value="10"></div><div class="G"><label>Zoom <span id="zV">1.0</span></label><input type="range" id="z" min="10" max="200" value="80"></div><button onclick="P()">⏯️ Pause</button><button class="sec" onclick="R()">🗑️ Reset</button><button onclick="SVG()">⬇️ SVG</button><button onclick="Audio()">🎵 Audio</button></div><div id="spline-p" class="hid"><div class="G"><label>Tension <span id="teV">0.5</span></label><input type="range" id="te" min="0" max="100" value="50"></div><div class="G"><label>Segments <span id="seV">20</span></label><input type="range" id="se" min="5" max="50" value="20"></div><button onclick="Smooth()">✨ Lisser</button><p style="font-size:10px;color:#667;margin-top:10px">🖱️ Glisser pour déplacer les points</p></div><div id="fill-p" class="hid"><div class="G"><label>Algo</label><select id="fa"><option value="grad">Dégradé</option><option value="knn">KNN</option><option value="wfc">WFC</option><option value="plas">Plasma</option></select></div><div class="G"><label>Teinte 1 <span id="h1V">180</span></label><input type="range" id="h1" min="0" max="360" value="180"></div><div class="G"><label>Teinte 2 <span id="h2V">280</span></label><input type="range" id="h2" min="0" max="360" value="280"></div><div class="G"><label>Densité <span id="dV">20</span></label><input type="range" id="d" min="5" max="50" value="20"></div></div><div id="ext-p" class="hid"><div class="drop" onclick="document.getElementById('f').click()">📸 Image<input type="file" id="f" accept="image/*" hidden></div><div class="G" style="margin-top:15px"><label>Seuil <span id="tV">128</span></label><input type="range" id="t" min="0" max="255" value="128"></div><div class="G"><label>Simplification <span id="siV">2.0</span></label><input type="range" id="si" min="1" max="10" value="20"></div><button onclick="Proc()">⚡ Extraire</button></div><div style="margin-top:30px;font-size:10px;color:#556;text-align:center">Optimisé < 16KB</div></div></div><script>
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fourier Art V6</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#050510;font-family:system-ui,sans-serif;color:#fff;min-height:100vh;overflow:hidden}.C{display:grid;grid-template-columns:1fr 300px;height:100vh}@media(max-width:800px){.C{grid-template-columns:1fr;height:auto;overflow-y:auto}}.A{position:relative;background:radial-gradient(circle at center,#1a1a2e 0,#000 100%);display:flex;align-items:center;justify-content:center}canvas{box-shadow:0 0 50px rgba(0,255,255,.1);border-radius:4px;background:#000}.S{background:rgba(20,20,30,.95);border-left:1px solid rgba(255,255,255,.1);padding:20px;overflow-y:auto;backdrop-filter:blur(10px)}h1{font-size:24px;background:linear-gradient(to right,#0ff,#0f8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:20px;font-weight:800}.G{margin-bottom:15px}label{display:flex;justify-content:space-between;font-size:11px;text-transform:uppercase;margin-bottom:5px;color:#88a}input[type=range]{width:100%;height:4px;background:#334;border-radius:2px;appearance:none;outline:none}input[type=range]::-webkit-slider-thumb{appearance:none;width:14px;height:14px;background:#0ff;border-radius:50%;cursor:pointer}select{width:100%;padding:8px;background:#223;border:1px solid #445;color:#fff;border-radius:4px}button{width:100%;padding:10px;margin-top:10px;background:linear-gradient(45deg,#0ff,#06f);border:none;border-radius:6px;color:#fff;font-weight:bold;cursor:pointer}button:hover{filter:brightness(1.2)}.sec{background:#334;color:#ccc}.tabs{display:flex;gap:5px;margin-bottom:20px;background:#223;padding:4px;border-radius:6px}.tab{flex:1;text-align:center;padding:6px;font-size:11px;cursor:pointer;border-radius:4px;color:#889}.tab.act{background:#0ff;color:#000;font-weight:bold}.hid{display:none}.drop{border:2px dashed #445;padding:20px;text-align:center;border-radius:8px;cursor:pointer}.drop:hover{border-color:#0ff}</style></head><body><div class="C"><div class="A"><canvas id="c" width="800" height="800"></canvas></div><div class="S"><h1>⚡ Fourier V6</h1><div class="tabs"><div class="tab act" onclick="M('draw')">DESSIN</div><div class="tab" onclick="M('spline')">SPLINES</div><div class="tab" onclick="M('fill')">REMPLIR</div><div class="tab" onclick="M('ext')">EXTRAIT</div></div><div id="draw-p"><div class="G"><label>Harmoniques <span id="hV">50</span></label><input type="range" id="h" min="5" max="300" value="50"></div><div class="G"><label>Vitesse <span id="sV">1.0</span></label><input type="range" id="s" min="1" max="50" value="10"></div><div class="G"><label>Zoom <span id="zV">1.0</span></label><input type="range" id="z" min="10" max="200" value="80"></div><button onclick="P()">⏯️ Pause</button><button class="sec" onclick="R()">🗑️ Reset</button><button onclick="SVG()">⬇️ SVG</button><button onclick="Audio()">🎵 Audio</button></div><div id="spline-p" class="hid"><div class="G"><label>Tension <span id="teV">0.5</span></label><input type="range" id="te" min="0" max="100" value="50"></div><div class="G"><label>Segments <span id="seV">20</span></label><input type="range" id="se" min="5" max="50" value="20"></div><button onclick="Smooth()">✨ Lisser</button><p style="font-size:10px;color:#667;margin-top:10px">🖱️ Glisser pour déplacer les points</p></div><div id="fill-p" class="hid"><div class="G"><label>Algo</label><select id="fa"><option value="grad">Dégradé</option><option value="knn">KNN</option><option value="wfc">WFC</option><option value="plas">Plasma</option></select></div><div class="G"><label>Teinte 1 <span id="h1V">180</span></label><input type="range" id="h1" min="0" max="360" value="180"></div><div class="G"><label>Teinte 2 <span id="h2V">280</span></label><input type="range" id="h2" min="0" max="360" value="280"></div><div class="G"><label>Densité <span id="dV">20</span></label><input type="range" id="d" min="5" max="50" value="20"></div></div><div id="ext-p" class="hid"><div class="drop" onclick="document.getElementById('f').click()">📸 Image<input type="file" id="f" accept="image/*" hidden></div><div class="G" style="margin-top:15px"><label>Seuil <span id="tV">128</span></label><input type="range" id="t" min="0" max="255" value="128"></div><div class="G"><label>Simplification <span id="siV">2.0</span></label><input type="range" id="si" min="1" max="10" value="20"></div><button onclick="Proc()">⚡ Extraire</button></div><div style="margin-top:30px;font-size:10px;color:#556;text-align:center">Optimisé < 16KB</div></div></div><script>
 const $=id=>document.getElementById(id);
 const cv=$('c'),ctx=cv.getContext('2d',{alpha:!1});
 const W=800,H=800;
@@ -33,15 +33,21 @@ $('fa').onchange=e=>p.fa=e.target.value;
 function Bezier(pts){
   if(pts.length<2)return pts;
   const res=[],ten=p.te;
+  // Catmull-Rom Spline with Derivative Control
   for(let i=0;i<pts.length;i++){
     const p0=pts[i===0?pts.length-1:i-1],p1=pts[i],p2=pts[(i+1)%pts.length],p3=pts[(i+2)%pts.length];
-    const cp1x=p1.x+(p2.x-p0.x)*ten/6,cp1y=p1.y+(p2.y-p0.y)*ten/6;
-    const cp2x=p2.x-(p3.x-p1.x)*ten/6,cp2y=p2.y-(p3.y-p1.y)*ten/6;
+    
+    // Derivatives (Tangents)
+    const m1x=(p2.x-p0.x)*ten, m1y=(p2.y-p0.y)*ten;
+    const m2x=(p3.x-p1.x)*ten, m2y=(p3.y-p1.y)*ten;
+
     for(let t=0;t<1;t+=1/p.se){
-      const mt=1-t,mt2=mt*mt,mt3=mt2*mt,t2=t*t,t3=t2*t;
+      const t2=t*t, t3=t2*t;
+      const h1=2*t3-3*t2+1, h2=-2*t3+3*t2, h3=t3-2*t2+t, h4=t3-t2;
+      
       res.push({
-        x:mt3*p1.x+3*mt2*t*cp1x+3*mt*t2*cp2x+t3*p2.x,
-        y:mt3*p1.y+3*mt2*t*cp1y+3*mt*t2*cp2y+t3*p2.y
+        x: h1*p1.x + h2*p2.x + h3*m1x + h4*m2x,
+        y: h1*p1.y + h2*p2.y + h3*m1y + h4*m2y
       });
     }
   }
@@ -101,9 +107,18 @@ function Dr(){
   if(md==='fill'){
     const s=p.d;
     for(let x=0;x<W;x+=s)for(let y=0;y<H;y+=s){ctx.fillStyle=GC(x,y,tm);ctx.fillRect(x,y,s,s);}
-    ctx.fillStyle='rgba(0,0,0,0.8)';ctx.beginPath();
-    if(pth.length>0){ctx.moveTo(pth[0].x,pth[0].y);for(let pt of pth)ctx.lineTo(pt.x,pt.y);}
-    ctx.fill();
+    
+    // Corrected Fill (Inner)
+    ctx.fillStyle='rgba(0,0,0,0.9)';
+    ctx.beginPath();
+    ctx.rect(0,0,W,H);
+    if(pth.length>0){
+      ctx.moveTo(pth[0].x,pth[0].y);
+      for(let pt of pth)ctx.lineTo(pt.x,pt.y);
+    }
+    ctx.closePath();
+    ctx.fill('evenodd'); // Use evenodd for hole effect
+    
   }else{
     ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
     if(md==='ext'&&imgD)ctx.putImageData(imgD,0,0);
@@ -147,22 +162,42 @@ $('f').onchange=e=>{
 function Proc(){
   if(!imgD)return;
   const d=imgD.data,w=imgD.width,h=imgD.height,e=[];
-  // Convolution (Sobel)
-  for(let y=1;y<h-1;y+=2)for(let x=1;x<w-1;x+=2){
-    const i=(y*w+x)*4,gx=(d[i+4]+d[i+5]+d[i+6])-(d[i-4]+d[i-3]+d[i-2]),gy=(d[i+w*4]+d[i+w*4+1]+d[i+w*4+2])-(d[i-w*4]+d[i-w*4+1]+d[i-w*4+2]);
-    if(Math.sqrt(gx*gx+gy*gy)>p.t)e.push({x:x-w/2,y:y-h/2});
-  }
-  if(e.length>0){
-    pts=[e[0]];e.splice(0,1);let c=pts[0];
-    while(e.length>0){
-      let n=0,m=Infinity,st=Math.max(1,Math.floor(e.length/500));
-      for(let i=0;i<e.length;i+=st){
-        const ds=(e[i].x-c.x)**2+(e[i].y-c.y)**2;
-        if(ds<m){m=ds;n=i;}
+  
+  // Specific Convolution Kernel [[1,0,1],[0,1,0],[1,0,1]]
+  const k=[1,0,1,0,1,0,1,0,1];
+  
+  for(let y=1;y<h-1;y++){
+    for(let x=1;x<w-1;x++){
+      let sum=0;
+      for(let ky=-1;ky<=1;ky++){
+        for(let kx=-1;kx<=1;kx++){
+          const i=((y+ky)*w+(x+kx))*4;
+          const val=(d[i]+d[i+1]+d[i+2])/3;
+          sum+=val*k[(ky+1)*3+(kx+1)];
+        }
       }
-      c=e[n];pts.push(c);e.splice(n,1);
+      if(sum/5 > p.t) { // Threshold
+         // Polar Projection
+         const dx=x-w/2, dy=y-h/2;
+         const r=Math.sqrt(dx*dx+dy*dy);
+         const a=Math.atan2(dy,dx);
+         e.push({x:dx,y:dy,r,a});
+      }
     }
-    const sk=Math.floor(p.si);pts=pts.filter((_,i)=>i%sk===0);
+  }
+
+  if(e.length>0){
+    // Sort by angle for "Rolled" effect
+    e.sort((a,b)=>a.a-b.a);
+    
+    // Simplify (take max radius per angle sector to avoid overlap)
+    const sectors={};
+    e.forEach(pt=>{
+      const sec=Math.floor(pt.a*100);
+      if(!sectors[sec] || pt.r > sectors[sec].r) sectors[sec]=pt;
+    });
+    
+    pts=Object.values(sectors).map(pt=>({x:pt.x,y:pt.y}));
     Smooth();
   }
 }
